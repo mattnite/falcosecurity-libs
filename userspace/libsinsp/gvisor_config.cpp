@@ -82,9 +82,7 @@ static const std::vector<std::string> s_context_fields = {
 	"time",
 };
 
-constexpr unsigned int max_retries = 3;
-
-std::string generate(std::string socket_path)
+std::string generate(std::string socket_path, unsigned int max_retries)
 {
 	Json::Value context_fields;
 	for(const auto &field : s_context_fields)
