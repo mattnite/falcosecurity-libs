@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <stdio.h>
 
+#include "compat/misc.h"
 #include "scap.h"
 #include "strerror.h"
 #include "strl.h"
