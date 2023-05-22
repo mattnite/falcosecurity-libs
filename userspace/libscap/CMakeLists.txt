@@ -179,7 +179,7 @@ target_link_libraries(scap scap_engine_source_plugin)
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	add_definitions(-DHAS_ENGINE_UDIG)
-	add_subdirectory(engine/udig)
+	add_subdirectory(engine/udig2)
 	target_link_libraries(scap scap_engine_udig)
 
 	if (NOT MINIMAL_BUILD OR BUILD_LIBSCAP_MODERN_BPF)
