@@ -90,6 +90,7 @@ Options:
   -b <path>, --bpf <path>                    BPF probe.
   -m, --modern_bpf               	     modern BPF probe.
   -k, --kmod				     Kernel module
+  -u, --user                                 Userspace engine (udig)
   -s <path>, --scap_file <path>   	     Scap file
   -d <dim>, --buffer_dim <dim>               Dimension in bytes that every per-CPU buffer will have.
   -o <fields>, --output-fields-json <fields> [JSON support only, can also use without -j] Output fields string (see <filter> for supported display fields) that overwrites JSON default output fields for all events. * at the beginning prints JSON keys with null values, else no null fields are printed.
@@ -106,29 +107,27 @@ Options:
 // Parse CLI options.
 void parse_CLI_options(sinsp& inspector, int argc, char** argv)
 {
-	static struct option long_options[] = {
-		{"help", no_argument, 0, 'h'},
-		{"filter", required_argument, 0, 'f'},
-		{"json", no_argument, 0, 'j'},
-		{"all-threads", no_argument, 0, 'a'},
-		{"bpf", required_argument, 0, 'b'},
-		{"modern_bpf", no_argument, 0, 'm'},
-		{"kmod", no_argument, 0, 'k'},
-		{"scap_file", required_argument, 0, 's'},
-		{"buffer_dim", required_argument, 0, 'd'},
-		{"output-fields-json", required_argument, 0, 'o'},
-		{"exclude-users", no_argument, 0, 'E'},
-		{"num-events", required_argument, 0, 'n'},
-		{"ppm-sc-modifies-state", no_argument, 0, 'z'},
-		{"ppm-sc-repair-state", no_argument, 0, 'x'},
-		{"remove-io-sc-state", no_argument, 0, 'q'},
-		{0, 0, 0, 0}};
+	static struct option long_options[] = {{"help", no_argument, 0, 'h'},
+					       {"filter", required_argument, 0, 'f'},
+					       {"json", no_argument, 0, 'j'},
+					       {"all-threads", no_argument, 0, 'a'},
+					       {"bpf", required_argument, 0, 'b'},
+					       {"modern_bpf", no_argument, 0, 'm'},
+					       {"kmod", no_argument, 0, 'k'},
+					       {"user", no_argument, 0, 'u'},
+					       {"scap_file", required_argument, 0, 's'},
+					       {"buffer_dim", required_argument, 0, 'd'},
+					       {"output-fields-json", required_argument, 0, 'o'},
+					       {"exclude-users", no_argument, 0, 'E'},
+					       {"num-events", required_argument, 0, 'n'},
+					       {"ppm-sc-modifies-state", no_argument, 0, 'z'},
+					       {"ppm-sc-repair-state", no_argument, 0, 'x'},
+					       {"remove-io-sc-state", no_argument, 0, 'q'},
+					       {0, 0, 0, 0}};
 
 	int op;
 	int long_index = 0;
-	while((op = getopt_long(argc, argv,
-				"hf:jab:mks:d:o:En:zxq",
-				long_options, &long_index)) != -1)
+	while((op = getopt_long(argc, argv, "hf:jab:mkus:d:o:En:zxq", long_options, &long_index)) != -1)
 	{
 		switch(op)
 		{
@@ -153,6 +152,9 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv)
 			break;
 		case 'k':
 			engine_string = KMOD_ENGINE;
+			break;
+		case 'u':
+			engine_string = UDIG_ENGINE;
 			break;
 		case 's':
 			engine_string = SAVEFILE_ENGINE;
@@ -266,6 +268,10 @@ void open_engine(sinsp& inspector, libsinsp::events::set<ppm_sc_code> events_sc_
 	else if(!engine_string.compare(MODERN_BPF_ENGINE))
 	{
 		inspector.open_modern_bpf(buffer_bytes_dim, DEFAULT_CPU_FOR_EACH_BUFFER, true, ppm_sc);
+	}
+	else if(!engine_string.compare(UDIG_ENGINE))
+	{
+		inspector.open_udig();
 	}
 	else
 	{
