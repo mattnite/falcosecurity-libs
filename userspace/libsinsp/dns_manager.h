@@ -62,14 +62,12 @@ public:
 private:
 	sinsp_dns_manager();
 
-#if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT) && !defined(_WIN32)
 	class dns_cache;
 	std::unique_ptr<dns_cache> m_dns_cache;
 	static void refresh(std::future<void> f_exit);
 	std::promise<void> m_exit_signal;
 	std::atomic<bool> m_resolver_flag;
 	std::thread *m_resolver = nullptr;
-#endif
 
 	uint64_t m_erase_timeout;
 	uint64_t m_base_refresh_timeout;

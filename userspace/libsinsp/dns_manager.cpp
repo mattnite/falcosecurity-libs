@@ -17,7 +17,6 @@ limitations under the License.
 
 #include "dns_manager.h"
 
-#if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT) && !defined(_WIN32)
 #include <tbb/concurrent_unordered_map.h>
 
 #define G_LOG_FORMAT(s, fmt, ...)                                       \
@@ -727,39 +726,6 @@ sinsp_dns_manager::sinsp_dns_manager()
 {
 	m_resolver_flag.store(false);
 }
-
-#else
-
-void sinsp_dns_manager::refresh(std::future<void> f_exit) {}
-
-void sinsp_dns_manager::clear_cache() {}
-
-size_t sinsp_dns_manager::size()
-{
-	return 0;
-}
-
-sinsp_dns_manager::sinsp_dns_manager()
-    : m_resolver(nullptr),
-      m_erase_timeout(3600 * ONE_SECOND_IN_NS),
-      m_base_refresh_timeout(10 * ONE_SECOND_IN_NS),
-      m_max_refresh_timeout(320 * ONE_SECOND_IN_NS)
-{
-}
-
-bool sinsp_dns_manager::match(const char* name, int af, void* addr, uint64_t ts)
-{
-	return false;
-}
-
-string sinsp_dns_manager::name_of(int af, void* addr, uint64_t ts)
-{
-	return {};
-}
-
-void sinsp_dns_manager::cleanup() {}
-
-#endif
 
 sinsp_dns_manager& sinsp_dns_manager::get()
 {
