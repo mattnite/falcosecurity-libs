@@ -15,6 +15,10 @@ limitations under the License.
 
 */
 
+#ifndef HAS_ANALYZER
+#error "no HAS_ANALYZER"
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #ifndef _WIN32
