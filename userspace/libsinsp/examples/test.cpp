@@ -37,6 +37,20 @@ extern "C" {
 }
 #endif // _WIN32
 
+#if defined(__GNUC__)
+#if defined(__x86_64__)
+#include "../../../driver/syscall_compat_x86_64.h"
+#elif defined(__aarch64__)
+#include "../../../driver/syscall_compat_aarch64.h"
+#elif defined(__s390x__)
+#include "../../../driver/syscall_compat_s390x.h"
+#endif /* __x86_64__ */
+#elif defined(_MSC_VER)
+// these are Linux syscall numbers and obviously meaningless for Windows/macOS
+// but we need *some* definition so that we have a mapping for scap_ppm_sc.c
+#include "../../../driver/syscall_compat_x86_64.h"
+#endif /* __GNUC__ */
+
 using namespace std;
 
 // Functions used for dumping to stdout
