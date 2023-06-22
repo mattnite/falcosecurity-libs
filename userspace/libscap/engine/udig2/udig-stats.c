@@ -9,11 +9,16 @@ int32_t scap_udig_get_stats(struct scap_engine_handle engine, struct scap_stats 
 
 	for(j = 0; j < devset->m_ndevs; j++)
 	{
-		stats->n_evts += devset->m_devs[j].m_bufinfo->n_evts;
-		stats->n_drops_buffer += devset->m_devs[j].m_bufinfo->n_drops_buffer;
-		stats->n_drops_pf += devset->m_devs[j].m_bufinfo->n_drops_pf;
-		stats->n_drops += devset->m_devs[j].m_bufinfo->n_drops_buffer + devset->m_devs[j].m_bufinfo->n_drops_pf;
-		stats->n_preemptions += devset->m_devs[j].m_bufinfo->n_preemptions;
+		scap_device *dev = &devset->m_devs[j];
+		if(dev->m_state != DEV_OPEN)
+		{
+			continue;
+		}
+		stats->n_evts += dev->m_bufinfo->n_evts;
+		stats->n_drops_buffer += dev->m_bufinfo->n_drops_buffer;
+		stats->n_drops_pf += dev->m_bufinfo->n_drops_pf;
+		stats->n_drops += dev->m_bufinfo->n_drops_buffer + dev->m_bufinfo->n_drops_pf;
+		stats->n_preemptions += dev->m_bufinfo->n_preemptions;
 	}
 
 	return SCAP_SUCCESS;
@@ -31,7 +36,12 @@ uint64_t scap_udig_get_max_buf_used(struct scap_engine_handle engine)
 
 	for(i = 0; i < devset->m_ndevs; i++)
 	{
-		uint64_t size = buf_size_used(&devset->m_devs[i]);
+		scap_device *dev = &devset->m_devs[i];
+		if(dev->m_state != DEV_OPEN)
+		{
+			return 0;
+		}
+		uint64_t size = buf_size_used(dev);
 		max = size > max ? size : max;
 	}
 
