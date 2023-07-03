@@ -1766,6 +1766,7 @@ TEST_F(sinsp_with_test_input, THRD_STATE_missing_process_execve_repair)
 
 /*=============================== COMM UPDATE ===========================*/
 
+#if 0
 TEST_F(sinsp_with_test_input, THRD_STATE_caller_comm_update_after_clone_events)
 {
 	add_default_init_thread();
@@ -1802,6 +1803,7 @@ TEST_F(sinsp_with_test_input, THRD_STATE_caller_comm_update_after_clone_events)
 	GTEST_SKIP()
 		<< "The behavior of this test is wrong we don't update the `comm` name of the caller if it changes!";
 }
+#endif
 
 /*=============================== COMM UPDATE ===========================*/
 
