@@ -79,6 +79,7 @@ int32_t udig_map_ring(struct scap_device *dev, uint32_t ring_size, char *error, 
 	dev->m_bufinfo = &info->m_bufinfo;
 	dev->m_bufinfo_size = mem_size;
 	dev->m_mmap_size = 2 * ring_size;
+	dev->m_buffer_size = ring_size;
 
 	//
 	// Locate the ring buffer status object
