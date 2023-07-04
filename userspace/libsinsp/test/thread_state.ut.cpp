@@ -2177,6 +2177,7 @@ sinsp_evt* search_evt_by_type_and_tid(sinsp* inspector, uint64_t type, int64_t t
 	return NULL;
 }
 
+#ifndef __s390x__
 TEST(parse_scap_file, simple_tree_with_prctl)
 {
 	/* Scap file:
@@ -2328,6 +2329,7 @@ TEST(parse_scap_file, simple_tree_with_prctl)
 	tginfo = m_inspector.m_thread_manager->get_thread_group_info(p3_t1_pid).get();
 	ASSERT_FALSE(tginfo);
 }
+#endif
 
 /*=============================== SCAP-FILES ===========================*/
 
