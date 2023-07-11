@@ -16,7 +16,7 @@ limitations under the License.
 */
 
 #ifndef HAS_ANALYZER
-#error "no HAS_ANALYZER"
+#warning "no HAS_ANALYZER"
 #endif
 
 #include <stdio.h>
