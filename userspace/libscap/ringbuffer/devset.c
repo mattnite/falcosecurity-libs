@@ -54,7 +54,7 @@ int32_t devset_grow(struct scap_device_set *devset, size_t num_devs, char *laste
 	devset->m_devs = NULL;
 	__sync_synchronize();
 
-	devs = (scap_device *)realloc(devset->m_devs, sizeof(scap_device) * devset->m_ndevs);
+	devs = (scap_device *)realloc(orig_devs, sizeof(scap_device) * devset->m_ndevs);
 	if(!devs)
 	{
 		devset->m_devs = orig_devs;
