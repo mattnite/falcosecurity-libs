@@ -14,6 +14,31 @@ elseif(NOT USE_BUNDLED_LIBBPF)
         message(FATAL_ERROR "Couldn't find system libbpf")
     endif()
 else()
+    execute_process(COMMAND uname -m
+          COMMAND sed "s/x86_64/x86/"
+          COMMAND sed "s/aarch64/arm64/"
+          COMMAND sed "s/ppc64le/powerpc/"
+          COMMAND sed "s/mips.*/mips/"
+          COMMAND sed "s/s390x/s390/"
+          OUTPUT_VARIABLE ARCH_output
+          ERROR_VARIABLE ARCH_error
+          RESULT_VARIABLE ARCH_result
+          OUTPUT_STRIP_TRAILING_WHITESPACE)
+    if(${ARCH_result} EQUAL 0)
+          set(ARCH ${ARCH_output})
+          message(STATUS "${MODERN_BPF_LOG_PREFIX} Target arch: ${ARCH}")
+    else()
+          message(FATAL_ERROR "${MODERN_BPF_LOG_PREFIX} Failed to determine target architecture: ${ARCH_error}")
+    endif()
+
+    if(${ARCH} STREQUAL "arm64")
+        set(BPF_SYSCALL_NUMBER 280)
+    elseif (${ARCH} STREQUAL "x86")
+        set(BPF_SYSCALL_NUMBER 321)
+    else()
+        message(FATAL_ERROR "Unsupported arch for manually setting BPF syscall number: '${ARCH}'")
+    endif()
+
     set(LIBBPF_SRC "${PROJECT_BINARY_DIR}/libbpf-prefix/src")
     set(LIBBPF_BUILD_DIR "${LIBBPF_SRC}/libbpf-build")
     set(LIBBPF_INCLUDE "${LIBBPF_BUILD_DIR}/root/usr/include")
@@ -26,7 +51,7 @@ else()
         URL_HASH
         "SHA256=32b0c41eabfbbe8e0c8aea784d7495387ff9171b5a338480a8fbaceb9da8d5e5"
         CONFIGURE_COMMAND mkdir -p build root
-        BUILD_COMMAND ${CMAKE_MAKE_PROGRAM} BUILD_STATIC_ONLY=y OBJDIR=${LIBBPF_BUILD_DIR}/build DESTDIR=${LIBBPF_BUILD_DIR}/root NO_PKG_CONFIG=1 "EXTRA_CFLAGS=-fPIC -I${LIBELF_INCLUDE} -I${ZLIB_INCLUDE}" "LDFLAGS=-Wl,-Bstatic" "EXTRA_LDFLAGS=-L${LIBELF_SRC}/libelf/libelf -L${ZLIB_SRC}" -C ${LIBBPF_SRC}/libbpf/src install install_uapi_headers
+        BUILD_COMMAND  ${CMAKE_MAKE_PROGRAM} "CFLAGS=-D__NR_bpf=${BPF_SYSCALL_NUMBER} -g -O2 -Werror -Wall -std=gnu89" BUILD_STATIC_ONLY=y  OBJDIR=${LIBBPF_BUILD_DIR}/build DESTDIR=${LIBBPF_BUILD_DIR}/root NO_PKG_CONFIG=1 "EXTRA_CFLAGS=-I${LIBELF_INCLUDE} -I${ZLIB_INCLUDE}" "LDFLAGS=-Wl,-Bstatic" "EXTRA_LDFLAGS=-L${LIBELF_SRC}/libelf/libelf -L${ZLIB_SRC}" -C ${LIBBPF_SRC}/libbpf/src install install_uapi_headers
         INSTALL_COMMAND ""
         UPDATE_COMMAND ""
     )

@@ -162,6 +162,14 @@ execute_process(
   OUTPUT_STRIP_TRAILING_WHITESPACE)
 if(${CLANG_SYSTEM_INCLUDES_result} EQUAL 0)
   string(REPLACE "\n" " " CLANG_SYSTEM_INCLUDES ${CLANG_SYSTEM_INCLUDES_output})
+
+  # when the above `CLANG_SYSTEM_INCLUDES` is placed in the command invocation
+  # below, cmake expands the variable as a single string, as if you were to
+  # type `clang "-idirafter <path> -idirafter <path>"`. If we replace each
+  # space with a semicolon, cmake sees the variable as a list, and will expand
+  # the variable correctly, each token its own argument on the command line:
+  # `clang -idirafter <path> -idirafter <path>`
+  string(REPLACE " " ";" CLANG_SYSTEM_INCLUDES ${CLANG_SYSTEM_INCLUDES})
   message(STATUS "${MODERN_BPF_LOG_PREFIX} BPF system include flags: ${CLANG_SYSTEM_INCLUDES}")
 else()
   message(FATAL_ERROR "${MODERN_BPF_LOG_PREFIX} Failed to determine BPF system includes: ${CLANG_SYSTEM_INCLUDES_error}")
@@ -211,7 +219,6 @@ list(APPEND CLANG_FLAGS
     -I${LIBBPF_INCLUDE}
     ${MODERN_PROBE_INCLUDE}
     -I${PPM_INCLUDE}
-    -isystem
 )
 
 message(STATUS "${MODERN_BPF_LOG_PREFIX} Compilation flags: ${CLANG_FLAGS}")
