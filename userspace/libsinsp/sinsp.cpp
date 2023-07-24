@@ -15,14 +15,6 @@ limitations under the License.
 
 */
 
-#ifndef HAS_ANALYZER
-#ifdef _MSC_VER
-#pragma message("no HAS_ANALYZER")
-#else
-#warning "no HAS_ANALYZER"
-#endif
-#endif
-
 #include <stdio.h>
 #include <stdlib.h>
 #ifndef _WIN32
