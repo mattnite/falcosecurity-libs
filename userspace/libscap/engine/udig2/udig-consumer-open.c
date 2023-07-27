@@ -16,8 +16,6 @@
 #include <sys/un.h>
 #include <unistd.h>
 
-#define PPM_MFD_CLOEXEC 0x0001U
-
 #ifndef __NR_memfd_create
 #define __NR_memfd_create 319
 #endif
