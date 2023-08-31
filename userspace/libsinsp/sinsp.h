@@ -1011,6 +1011,14 @@ public:
 	void set_track_connection_status(bool enabled);
 
 	bool remove_inactive_threads();
+	
+	/**
+	 * \brief Get a new timestamp.
+	 * 
+	 * \return The current time in nanoseconds if the last event timestamp is 0,
+	 * otherwise, the last event timestamp.
+	 */
+	uint64_t get_new_ts();
 
 VISIBILITY_PROTECTED
 	bool add_thread(const sinsp_threadinfo *ptinfo);
