@@ -212,6 +212,7 @@ set(SINSP_PKGCONFIG_LIBRARIES
 			"${RE2_LIB}")
 
 if(USE_BUNDLED_VALIJSON)
+	include(valijson)
 	add_dependencies(sinsp valijson)
 endif()
 
