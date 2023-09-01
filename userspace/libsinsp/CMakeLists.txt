@@ -305,8 +305,8 @@ if(NOT WIN32)
 
 	if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 		if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.0)
-			list(APPEND SINSP_PKGCONFIG_LIBRARIES
-				stdc++fs)
+			target_link_libraries(sinsp INTERFACE stdc++fs)
+			list(APPEND SINSP_PKGCONFIG_LIBRARIES stdc++fs)
 		endif()
 	endif()
 	target_link_libraries(sinsp INTERFACE dl pthread)
