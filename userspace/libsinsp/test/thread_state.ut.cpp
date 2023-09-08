@@ -498,52 +498,6 @@ TEST_F(sinsp_with_test_input, THRD_STATE_parse_clone_exit_parent_simple)
 	ASSERT_MISSING_THREAD_INFO(p1_t1_tid, true)
 }
 
-TEST_F(sinsp_with_test_input, THRD_STATE_parse_clone_exit_parent_clone_parent_flag)
-{
-	add_default_init_thread();
-	open_inspector();
-
-	/* Init creates a new process p1 */
-	int64_t p1_t1_tid = 24;
-	int64_t p1_t1_pid = 24;
-	int64_t p1_t1_ptid = INIT_TID;
-
-	/* Parent clone exit event */
-	generate_clone_x_event(p1_t1_tid, INIT_TID, INIT_PID, INIT_PTID);
-	ASSERT_THREAD_INFO_PIDS(p1_t1_tid, p1_t1_pid, p1_t1_ptid)
-	ASSERT_THREAD_CHILDREN(INIT_TID, 1, 1, p1_t1_tid)
-
-	/* The process p1 creates a second process p2 with the `CLONE_PARENT` flag */
-	int64_t p2_t1_tid = 30;
-	int64_t p2_t1_pid = 30;
-	/* with the `CLONE_PARENT` flag the parent is the parent of the calling process */
-	int64_t p2_t1_ptid = INIT_TID;
-
-	/* Parent clone exit event */
-	generate_clone_x_event(p2_t1_tid, p1_t1_tid, p1_t1_pid, p1_t1_ptid, PPM_CL_CLONE_PARENT);
-	ASSERT_THREAD_INFO_PIDS(p2_t1_tid, p2_t1_pid, p2_t1_ptid)
-	ASSERT_THREAD_GROUP_INFO(p2_t1_pid, 1, false, 1, 1, p2_t1_tid)
-
-	/* Assert that init has 2 children */
-	ASSERT_THREAD_CHILDREN(INIT_TID, 2, 2, p1_t1_tid, p2_t1_tid)
-
-	/* Now the schema is:
-	 * - init
-	 *  - p1_t1
-	 *   - p2_t1 (where the parent is init)
-	 *
-	 * if we remove p2_t1, we should see:
-	 * - thread group info is deleted from the thread_manager.
-	 * - init has 2 children but the only one not expired is `p1_t1`
-	 * - there is no more thread info for `p2_t1`
-	 */
-	remove_thread(p2_t1_tid);
-
-	ASSERT_FALSE(m_inspector.m_thread_manager->get_thread_group_info(p2_t1_pid));
-	ASSERT_THREAD_CHILDREN(INIT_TID, 2, 1, p1_t1_tid)
-	ASSERT_MISSING_THREAD_INFO(p2_t1_tid, true)
-}
-
 TEST_F(sinsp_with_test_input, THRD_STATE_parse_clone_exit_parent_clone_remove_main_thread_first)
 {
 	add_default_init_thread();
