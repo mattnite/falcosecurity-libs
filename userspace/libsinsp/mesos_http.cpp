@@ -68,13 +68,7 @@ mesos_http::mesos_http(mesos& m, const uri& url,
 		m_sync_curl_headers.add(std::string("Authorization: token=") + m_token);
 		check_error(curl_easy_setopt(m_sync_curl, CURLOPT_HTTPHEADER, m_sync_curl_headers.ptr()));
 	}
-	if(m_url.is_secure())
-	{
-		check_error(curl_easy_setopt(m_sync_curl, CURLOPT_SSL_VERIFYPEER, 0));
-		check_error(curl_easy_setopt(m_sync_curl, CURLOPT_SSL_VERIFYHOST, 0));
-		check_error(curl_easy_setopt(m_select_curl, CURLOPT_SSL_VERIFYPEER, 0));
-		check_error(curl_easy_setopt(m_select_curl, CURLOPT_SSL_VERIFYHOST, 0));
-	}
+
 	check_error(curl_easy_setopt(m_sync_curl, CURLOPT_FORBID_REUSE, 1L));
 	check_error(curl_easy_setopt(m_sync_curl, CURLOPT_CONNECTTIMEOUT_MS, m_timeout_ms));
 	check_error(curl_easy_setopt(m_sync_curl, CURLOPT_TIMEOUT_MS, m_timeout_ms));
