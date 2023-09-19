@@ -2,9 +2,8 @@ name: Insecure API check
 on:
   pull_request:
     branches:
-      - master
-      - 'release/**'
-      - 'maintainers/**'
+      - dev
+      - 'oss-sync-**'
 
 jobs:
   insecure-api:
