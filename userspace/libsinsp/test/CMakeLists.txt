@@ -20,8 +20,17 @@ if(NOT MINIMAL_BUILD)
 	include(curl)
 endif() # MINIMAL_BUILD
 
-include_directories("..")
-include_directories(${LIBSCAP_INCLUDE_DIR} ${LIBSCAP_DIR}/driver "${CMAKE_CURRENT_BINARY_DIR}")
+if(NOT MINIMAL_BUILD)
+	include(zlib)
+endif()
+
+if(WIN32)
+	set(CMAKE_CXX_FLAGS "-D_CRT_SECURE_NO_WARNINGS -DWIN32 -DMINIMAL_BUILD /EHsc /W3 /Zi /std:c++17")
+	set(CMAKE_CXX_FLAGS_DEBUG "/MTd /Od")
+	set(CMAKE_CXX_STANDARD 17)
+endif()
+
+include_directories(${LIBSINSP_INCLUDE_DIR} ${LIBSCAP_DIR}/driver "${CMAKE_CURRENT_BINARY_DIR}")
 
 # Create a libsinsp_test_var.h file with some variables used by our tests
 configure_file (
