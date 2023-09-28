@@ -38,19 +38,19 @@ limitations under the License.
 marathon_http::marathon_http(mesos& m, const uri& url, bool discover_marathon, int timeout_ms, const std::string& token):
 	mesos_http(m, url, false, discover_marathon, timeout_ms, token)
 {
-	g_logger.log("Creating Marathon HTTP object for [" + url.to_string(false) + "] ...", sinsp_logger::SEV_DEBUG);
+	g_logger.log(FALCO_LOG_SEV_DEBUG, "Creating Marathon HTTP object for [" + url.to_string(false) + "] ...");
 	if(refresh_data())
 	{
-		g_logger.log("Created Marathon HTTP connection (" + url.to_string(false) + ") for framework [" +
-					 get_framework_name() + "] (" + get_framework_id() + "), version: " + get_framework_version(),
-					 sinsp_logger::SEV_INFO);
+		g_logger.log(FALCO_LOG_SEV_INFO,
+					 "Created Marathon HTTP connection (" + url.to_string(false) + ") for framework [" +
+					 get_framework_name() + "] (" + get_framework_id() + "), version: " + get_framework_version());
 	}
 	else
 	{
 		throw sinsp_exception("Could not obtain Mesos Marathon framework information.");
 	}
 
-	g_logger.log("Marathon request [" + get_request() + ']', sinsp_logger::SEV_DEBUG);
+	g_logger.log(FALCO_LOG_SEV_DEBUG, "Marathon request [" + get_request() + ']');
 }
 
 marathon_http::~marathon_http()
@@ -66,7 +66,7 @@ bool marathon_http::refresh_data()
 	if(res != CURLE_OK)
 	{
 		std::string errstr = std::string("Problem accessing /v2/info: ") + curl_easy_strerror(res);
-		g_logger.log(errstr, sinsp_logger::SEV_ERROR);
+		g_logger.log(FALCO_LOG_SEV_ERROR, errstr);
 		g_json_error_log.log(os.str(), errstr, sinsp_utils::get_current_time_ns(), uri);
 		return false;
 	}
@@ -80,13 +80,13 @@ bool marathon_http::refresh_data()
 			set_framework_id(get_json_string(root, "frameworkId"));
 			set_framework_name(get_json_string(root, "name"));
 			set_framework_version(get_json_string(root, "version"));
-			g_logger.log("Found Marathon framework: " + get_framework_name() + " (" + get_framework_id() + "), version: " + get_framework_version(), sinsp_logger::SEV_DEBUG);
+			g_logger.log(FALCO_LOG_SEV_DEBUG, "Found Marathon framework: " + get_framework_name() + " (" + get_framework_id() + "), version: " + get_framework_version());
 		}
 		else
 		{
 			std::string errstr;
 			errstr = reader.getFormattedErrorMessages();
-			g_logger.log("Error parsing framework info (" + errstr + ").\nJSON:\n---\n" + os.str() + "\n---", sinsp_logger::SEV_ERROR);
+			g_logger.log(FALCO_LOG_SEV_ERROR, "Error parsing framework info (" + errstr + ").\nJSON:\n---\n" + os.str() + "\n---");
 			g_json_error_log.log(os.str(), errstr, sinsp_utils::get_current_time_ns(), uri);
 			return false;
 		}
@@ -94,7 +94,7 @@ bool marathon_http::refresh_data()
 	catch(const std::exception& ex)
 	{
 		std::string errstr = std::string("Error parsing framework info:") + ex.what();
-		g_logger.log(errstr, sinsp_logger::SEV_ERROR);
+		g_logger.log(FALCO_LOG_SEV_ERROR, errstr);
 		g_json_error_log.log(os.str(), errstr, sinsp_utils::get_current_time_ns(), uri);
 		return false;
 	}
@@ -111,7 +111,7 @@ std::string marathon_http::get_groups(const std::string& group_id)
 	if(res != CURLE_OK)
 	{
 		std::string errstr = std::string("Problem accessing /v2/groups: ") + curl_easy_strerror(res);
-		g_logger.log(errstr, sinsp_logger::SEV_ERROR);
+		g_logger.log(FALCO_LOG_SEV_ERROR, errstr);
 		g_json_error_log.log(os.str(), errstr, sinsp_utils::get_current_time_ns(), uri);
 		return "";
 	}

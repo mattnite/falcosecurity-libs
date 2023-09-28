@@ -47,7 +47,7 @@ sinsp_logger::sinsp_logger():
 	m_file(nullptr),
 	m_callback(nullptr),
 	m_flags(OT_NONE),
-	m_sev(SEV_INFO)
+	m_sev(FALCO_LOG_SEV_INFO)
 { }
 
 sinsp_logger::~sinsp_logger()
@@ -121,7 +121,7 @@ void sinsp_logger::remove_callback_log()
 	m_flags &= ~sinsp_logger::OT_CALLBACK;
 }
 
-void sinsp_logger::set_severity(const severity sev)
+void sinsp_logger::set_severity(const falco_log_severity sev)
 {
 	if(m_sev < SEV_MIN || m_sev > SEV_MAX)
 	{
@@ -131,12 +131,12 @@ void sinsp_logger::set_severity(const severity sev)
 	m_sev = sev;
 }
 
-sinsp_logger::severity sinsp_logger::get_severity() const
+falco_log_severity sinsp_logger::get_severity() const
 {
 	return m_sev;
 }
 
-void sinsp_logger::log(std::string msg, const severity sev)
+void sinsp_logger::log(const falco_log_severity sev, std::string msg)
 {
 	sinsp_logger_callback cb = nullptr;
 
@@ -192,7 +192,7 @@ void sinsp_logger::log(std::string msg, const severity sev)
 
 	if(cb != nullptr)
 	{
-		cb(std::move(msg), sev);
+		cb(sev, std::move(msg));
 	}
 	else if((m_flags & sinsp_logger::OT_FILE) && m_file)
 	{
@@ -211,7 +211,7 @@ void sinsp_logger::log(std::string msg, const severity sev)
 	}
 }
 
-void sinsp_logger::format(const severity sev, const char* const fmt, ...)
+void sinsp_logger::format(const falco_log_severity sev, const char* const fmt, ...)
 {
 	if(sev > m_sev)
 	{
@@ -224,7 +224,7 @@ void sinsp_logger::format(const severity sev, const char* const fmt, ...)
 	vsnprintf(s_tbuf, sizeof s_tbuf, fmt, ap);
 	va_end(ap);
 
-	log(s_tbuf, sev);
+	log(sev, s_tbuf);
 }
 
 void sinsp_logger::format(const char* const fmt, ...)
@@ -235,10 +235,10 @@ void sinsp_logger::format(const char* const fmt, ...)
 	vsnprintf(s_tbuf, sizeof s_tbuf, fmt, ap);
 	va_end(ap);
 
-	log(s_tbuf, SEV_INFO);
+	log(FALCO_LOG_SEV_INFO, s_tbuf);
 }
 
-const char* sinsp_logger::format_and_return(const severity sev, const char* const fmt, ...)
+const char* sinsp_logger::format_and_return(const falco_log_severity sev, const char* const fmt, ...)
 {
 	va_list ap;
 
@@ -246,7 +246,7 @@ const char* sinsp_logger::format_and_return(const severity sev, const char* cons
 	vsnprintf(s_tbuf, sizeof s_tbuf, fmt, ap);
 	va_end(ap);
 
-	log(s_tbuf, SEV_INFO);
+	log(FALCO_LOG_SEV_INFO, s_tbuf);
 
 	return s_tbuf;
 }
@@ -269,7 +269,7 @@ static_assert(sizeof(SEV_LEVELS) == sizeof(*SEV_LEVELS) * ((size_t)(sinsp_logger
 	      "severity array must have SEV_MAX+1 elements");
 }
 
-const char* sinsp_logger::encode_severity(const sinsp_logger::severity sev)
+const char* sinsp_logger::encode_severity(const falco_log_severity sev)
 {
 	const char* ret;
 	auto sev_int = (size_t)sev;
@@ -283,7 +283,7 @@ const char* sinsp_logger::encode_severity(const sinsp_logger::severity sev)
 	return ret;
 }
 
-size_t sinsp_logger::decode_severity(const std::string &str, severity& sev)
+size_t sinsp_logger::decode_severity(const std::string &str, falco_log_severity& sev)
 {
 	if(str.length() < ENCODE_LEN)
 	{
@@ -297,7 +297,7 @@ size_t sinsp_logger::decode_severity(const std::string &str, severity& sev)
 	{
 		if(!strncmp(msg, SEV_LEVELS[i], ENCODE_LEN))
 		{
-			sev = static_cast<severity>(i);
+			sev = static_cast<falco_log_severity>(i);
 			return ENCODE_LEN;
 		}
 	}

@@ -79,7 +79,7 @@ public:
 		}
 		else
 		{
-			g_logger.log("Null metadata object received", sinsp_logger::SEV_ERROR);
+			g_logger.log(FALCO_LOG_SEV_ERROR, "Null metadata object received");
 		}
 	}
 
@@ -101,12 +101,12 @@ public:
 			}
 			else
 			{
-				g_logger.log("K8s: Null selector object.", sinsp_logger::SEV_ERROR);
+				g_logger.log(FALCO_LOG_SEV_ERROR, "K8s: Null selector object.");
 			}
 		}
 		else
 		{
-			g_logger.log("K8s: Null spec object.", sinsp_logger::SEV_ERROR);
+			g_logger.log(FALCO_LOG_SEV_ERROR, "K8s: Null spec object.");
 		}
 	}
 
@@ -143,7 +143,7 @@ private:
 			{
 				std::ostringstream os;
 				os << "ADDED message received for existing " << comp_name << '[' << data.m_uid << "], updating only.";
-				g_logger.log(os.str(), sinsp_logger::SEV_DEBUG);
+				g_logger.log(FALCO_LOG_SEV_DEBUG, os.str());
 			}
 			comp_t& rc = m_state.get_component<T, comp_t>(cont, data.m_name, data.m_uid, data.m_namespace);
 			const Json::Value& object = root["object"];
@@ -156,8 +156,8 @@ private:
 			}
 			else
 			{
-				g_logger.log("K8s: object is null for " + comp_name + ' ' + data.m_name + '[' + data.m_uid + ']',
-							 sinsp_logger::SEV_ERROR);
+				g_logger.log(FALCO_LOG_SEV_ERROR,
+							 "K8s: object is null for " + comp_name + ' ' + data.m_name + '[' + data.m_uid + ']');
 			}
 		}
 		else if(data.m_reason == COMPONENT_MODIFIED)
@@ -166,7 +166,7 @@ private:
 			{
 				std::ostringstream os;
 				os << "MODIFIED message received for non-existing " << comp_name << '[' << data.m_uid << "], giving up.";
-				g_logger.log(os.str(), sinsp_logger::SEV_ERROR);
+				g_logger.log(FALCO_LOG_SEV_ERROR, os.str());
 				return;
 			}
 			comp_t& rc = m_state.get_component<T, comp_t>(cont, data.m_name, data.m_uid, data.m_namespace);
@@ -179,15 +179,15 @@ private:
 			}
 			else
 			{
-				g_logger.log("K8s: object is null for " + comp_name + ' ' + data.m_name + '[' + data.m_uid + ']',
-							 sinsp_logger::SEV_ERROR);
+				g_logger.log(FALCO_LOG_SEV_ERROR,
+							 "K8s: object is null for " + comp_name + ' ' + data.m_name + '[' + data.m_uid + ']');
 			}
 		}
 		else if(data.m_reason == COMPONENT_DELETED)
 		{
 			if(!m_state.delete_component(cont, data.m_uid))
 			{
-				g_logger.log("K8s: " + comp_name + " not found: " + data.m_name, sinsp_logger::SEV_ERROR);
+				g_logger.log(FALCO_LOG_SEV_ERROR, "K8s: " + comp_name + " not found: " + data.m_name);
 			}
 		}
 		else if(data.m_reason == COMPONENT_ERROR)
@@ -196,7 +196,7 @@ private:
 		}
 		else
 		{
-			g_logger.log(std::string("Unsupported K8S " + comp_name + " event reason: ") + std::to_string(data.m_reason), sinsp_logger::SEV_ERROR);
+			g_logger.log(FALCO_LOG_SEV_ERROR, std::string("Unsupported K8S " + comp_name + " event reason: ") + std::to_string(data.m_reason));
 		}
 	}
 

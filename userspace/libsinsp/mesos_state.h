@@ -335,27 +335,27 @@ inline void mesos_state_t::remove_task(mesos_framework& framework, const std::st
 				if(!group->remove_task(uid))
 				{
 					std::string errstr = "Task [" + uid + "] not found in Marathon app [" + app_id + ']';
-					g_logger.log(errstr,
-						     sinsp_logger::SEV_ERROR);
+					g_logger.log(FALCO_LOG_SEV_ERROR,
+						     errstr);
 					g_json_error_log.log(uid, errstr, sinsp_utils::get_current_time_ns(), "remove-task");
 				}
 			}
 			else
 			{
 				std::string errstr = "Group not found for Marathon app [" + app_id + "] while trying to remove task [" + uid + ']';
-				g_logger.log(errstr,
-					     sinsp_logger::SEV_ERROR);
+				g_logger.log(FALCO_LOG_SEV_ERROR,
+					     errstr);
 				g_json_error_log.log(app_id, errstr, sinsp_utils::get_current_time_ns(), "remove-task");
 			}
 		}
 		else
 		{
-			g_logger.log("Task [" + uid + "] has no Marathon app ID.", sinsp_logger::SEV_WARNING);
+			g_logger.log(FALCO_LOG_SEV_WARNING, "Task [" + uid + "] has no Marathon app ID.");
 		}
 	}
 	else
 	{
-		g_logger.log("Task [" + uid + "] not found in framework [" + framework.get_uid() + ']', sinsp_logger::SEV_WARNING);
+		g_logger.log(FALCO_LOG_SEV_WARNING, "Task [" + uid + "] not found in framework [" + framework.get_uid() + ']');
 	}
 	framework.remove_task(uid);
 	m_task_framework_cache.erase(uid);

@@ -141,8 +141,8 @@ bool k8s_daemonset_handler::handle_component(const Json::Value& json, const msg_
 			}
 			else if(data->m_reason != k8s_component::COMPONENT_ERROR)
 			{
-				g_logger.log(std::string("Unsupported K8S " + name() + " event reason: ") +
-							 std::to_string(data->m_reason), sinsp_logger::SEV_ERROR);
+				g_logger.log(FALCO_LOG_SEV_ERROR, std::string("Unsupported K8S " + name() + " event reason: ") +
+							 std::to_string(data->m_reason));
 				return false;
 			}
 		}

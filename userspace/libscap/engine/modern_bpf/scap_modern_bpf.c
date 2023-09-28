@@ -40,13 +40,11 @@ static struct modern_bpf_engine* scap_modern_bpf__alloc_engine(scap_t* main_hand
 	return engine;
 }
 
-static void scap_modern_bpf__free_engine(struct scap_engine_handle engine)
-{
-	free(engine.m_handle);
-}
+static void scap_modern_bpf__free_engine(struct scap_engine_handle engine) { free(engine.m_handle); }
 
 /* The third parameter is not the CPU number from which we extract the event but the ring buffer number.
- * For the old BPF probe and the kernel module the number of CPUs is equal to the number of buffers since we always use a per-CPU approach.
+ * For the old BPF probe and the kernel module the number of CPUs is equal to the number of buffers since we always use
+ * a per-CPU approach.
  */
 static int32_t scap_modern_bpf__next(struct scap_engine_handle engine, OUT scap_evt** pevent, OUT uint16_t* buffer_id)
 {
@@ -92,7 +90,8 @@ static int32_t scap_modern_bpf_handle_sc(struct scap_engine_handle engine, uint3
 	return SCAP_SUCCESS;
 }
 
-static int32_t scap_modern_bpf__configure(struct scap_engine_handle engine, enum scap_setting setting, unsigned long arg1, unsigned long arg2)
+static int32_t scap_modern_bpf__configure(struct scap_engine_handle engine, enum scap_setting setting,
+					  unsigned long arg1, unsigned long arg2)
 {
 	switch(setting)
 	{
@@ -179,7 +178,8 @@ int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs)
 	 * Validation of `cpus_for_each_buffer` is made inside libpman
 	 * since this is the unique place where we have the number of CPUs
 	 */
-	if(pman_init_state(params->verbose, params->buffer_bytes_dim, params->cpus_for_each_buffer, params->allocate_online_only))
+	if(pman_init_state(oargs->log_fn, params->buffer_bytes_dim, params->cpus_for_each_buffer,
+			   params->allocate_online_only))
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unable to configure the libpman state.");
 		return SCAP_FAILURE;
@@ -232,10 +232,7 @@ int32_t scap_modern_bpf__close(struct scap_engine_handle engine)
 	return SCAP_SUCCESS;
 }
 
-static uint32_t scap_modern_bpf__get_n_devs(struct scap_engine_handle engine)
-{
-	return pman_get_required_buffers();
-}
+static uint32_t scap_modern_bpf__get_n_devs(struct scap_engine_handle engine) { return pman_get_required_buffers(); }
 
 int32_t scap_modern_bpf__get_stats(struct scap_engine_handle engine, OUT scap_stats* stats)
 {
@@ -246,7 +243,8 @@ int32_t scap_modern_bpf__get_stats(struct scap_engine_handle engine, OUT scap_st
 	return SCAP_SUCCESS;
 }
 
-const struct scap_stats_v2* scap_modern_bpf__get_stats_v2(struct scap_engine_handle engine, uint32_t flags, OUT uint32_t* nstats, OUT int32_t* rc)
+const struct scap_stats_v2* scap_modern_bpf__get_stats_v2(struct scap_engine_handle engine, uint32_t flags,
+							  OUT uint32_t* nstats, OUT int32_t* rc)
 {
 	return pman_get_scap_stats_v2(flags, nstats, rc);
 }
@@ -260,10 +258,7 @@ int32_t scap_modern_bpf__get_n_tracepoint_hit(struct scap_engine_handle engine, 
 	return SCAP_SUCCESS;
 }
 
-uint64_t scap_modern_bpf__get_api_version(struct scap_engine_handle engine)
-{
-	return engine.m_handle->m_api_version;
-}
+uint64_t scap_modern_bpf__get_api_version(struct scap_engine_handle engine) { return engine.m_handle->m_api_version; }
 
 uint64_t scap_modern_bpf__get_schema_version(struct scap_engine_handle engine)
 {

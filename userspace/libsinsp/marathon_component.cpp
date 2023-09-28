@@ -153,7 +153,7 @@ void marathon_app::add_task(mesos_framework::task_ptr_t ptask)
 	}
 	else
 	{
-		g_logger.log("Attempt to add null task to app [" + get_id() + ']', sinsp_logger::SEV_WARNING);
+		g_logger.log(FALCO_LOG_SEV_WARNING, "Attempt to add null task to app [" + get_id() + ']');
 	}
 }
 
@@ -168,7 +168,7 @@ bool marathon_app::remove_task(const std::string& task_id)
 			return true;
 		}
 	}
-	g_logger.log("Task [" + task_id + "] not found in app [" + get_id() + ']', sinsp_logger::SEV_WARNING);
+	g_logger.log(FALCO_LOG_SEV_WARNING, "Task [" + task_id + "] not found in app [" + get_id() + ']');
 	return false;
 }
 

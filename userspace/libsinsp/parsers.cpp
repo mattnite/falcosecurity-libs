@@ -1331,7 +1331,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid)
 			else
 			{
 				/* This should never happen */
-				g_logger.format(sinsp_logger::SEV_DEBUG, "cannot get fd table in sinsp_parser::parse_clone_exit.");
+				g_logger.format(FALCO_LOG_SEV_DEBUG, "cannot get fd table in sinsp_parser::parse_clone_exit.");
 				ASSERT(false);
 			}
 
@@ -1933,7 +1933,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt)
 			else
 			{
 				/* This should never happen */
-				g_logger.format(sinsp_logger::SEV_DEBUG,
+				g_logger.format(FALCO_LOG_SEV_DEBUG,
 						"cannot get fd table in sinsp_parser::parse_clone_exit.");
 				ASSERT(false);
 			}
@@ -5775,7 +5775,7 @@ namespace
 				err_msg = generate_error_message(value, field);
 				SINSP_WARNING("%s",err_msg.c_str());
 			} else {
-				if(g_logger.get_severity() >= sinsp_logger::SEV_DEBUG) {
+				if(g_logger.get_severity() >= FALCO_LOG_SEV_DEBUG) {
 					err_msg = generate_error_message(value, field);
 					SINSP_DEBUG("%s",err_msg.c_str());
 				}

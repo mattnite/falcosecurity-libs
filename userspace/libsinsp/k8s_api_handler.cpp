@@ -69,8 +69,8 @@ bool k8s_api_handler::handle_component(const Json::Value& json, const msg_data* 
 				}
 				else
 				{
-					g_logger.log("K8s API handler error: could not extract API versions or extensions from JSON.",
-								 sinsp_logger::SEV_ERROR);
+					g_logger.log(FALCO_LOG_SEV_ERROR,
+								 "K8s API handler error: could not extract API versions or extensions from JSON.");
 					m_error = true;
 					return false;
 				}
@@ -82,8 +82,8 @@ bool k8s_api_handler::handle_component(const Json::Value& json, const msg_data* 
 		}
 		else
 		{
-			g_logger.log("K8s API handler error: could not extract API versions or extensions from JSON.",
-						 sinsp_logger::SEV_ERROR);
+			g_logger.log(FALCO_LOG_SEV_ERROR,
+						 "K8s API handler error: could not extract API versions or extensions from JSON.");
 			m_error = true;
 			return false;
 		}
@@ -91,7 +91,7 @@ bool k8s_api_handler::handle_component(const Json::Value& json, const msg_data* 
 	}
 	else
 	{
-		g_logger.log("K8s API handler error: json is null.", sinsp_logger::SEV_ERROR);
+		g_logger.log(FALCO_LOG_SEV_ERROR, "K8s API handler error: json is null.");
 		m_error = true;
 		return false;
 	}
@@ -100,10 +100,10 @@ bool k8s_api_handler::handle_component(const Json::Value& json, const msg_data* 
 
 void k8s_api_handler::handle_json(Json::Value&& root)
 {
-	if(g_logger.get_severity() >= sinsp_logger::SEV_TRACE)
+	if(g_logger.get_severity() >= FALCO_LOG_SEV_TRACE)
 	{
-		g_logger.log("K8S API handler [" + json_as_string(root) + "] reply:\n",
-					 sinsp_logger::SEV_TRACE);
+		g_logger.log(FALCO_LOG_SEV_TRACE,
+					 "K8S API handler [" + json_as_string(root) + "] reply:\n");
 	}
 
 	handle_component(root);

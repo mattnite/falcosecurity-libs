@@ -186,8 +186,8 @@ void mesos_framework::remove_task(const std::string& uid)
 		m_tasks.erase(it);
 		return;
 	}
-	g_logger.log("Removal of non-existing task (possible deployment failure): " + uid,
-				sinsp_logger::SEV_WARNING);
+	g_logger.log(FALCO_LOG_SEV_WARNING,
+				"Removal of non-existing task (possible deployment failure): " + uid);
 }
 
 const mesos_framework::task_map& mesos_framework::get_tasks() const
@@ -249,7 +249,7 @@ bool mesos_task::is_task_running(const Json::Value& task)
 
 mesos_task::ptr_t mesos_task::make_task(const Json::Value& task)
 {
-	//g_logger.log(task.toStyledString(), sinsp_logger::SEV_DEBUG);
+	//g_logger.log(FALCO_LOG_SEV_DEBUG, task.toStyledString());
 	std::string name, uid, sid;
 	Json::Value fid = task["id"];
 	if(!fid.isNull()) { uid = fid.asString(); }
@@ -310,7 +310,7 @@ void mesos_task::add_labels(mesos_task::ptr_t task, const Json::Value& t_val)
 					val = lval.asString();
 				}
 				os << "Adding Mesos task label: [" << key << ':' << val << ']';
-				g_logger.log(os.str(), sinsp_logger::SEV_DEBUG);
+				g_logger.log(FALCO_LOG_SEV_DEBUG, os.str());
 				os.str("");
 				task->emplace_label(mesos_pair_t(key, val));
 			}
@@ -319,7 +319,7 @@ void mesos_task::add_labels(mesos_task::ptr_t task, const Json::Value& t_val)
 	else
 	{
 		os << "Attempt to add Mesos task labels to null task.";
-		g_logger.log(os.str(), sinsp_logger::SEV_ERROR);
+		g_logger.log(FALCO_LOG_SEV_ERROR, os.str());
 		g_json_error_log.log("", os.str(), sinsp_utils::get_current_time_ns(), "mesos-task-add-labels");
 	}
 }

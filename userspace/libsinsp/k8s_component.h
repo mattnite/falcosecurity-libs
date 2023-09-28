@@ -804,8 +804,8 @@ inline void k8s_pod_t::set_restart_count(int rc)
 {
 	if(rc < 0)
 	{
-		g_logger.log("Unexpected K8S pod restart count received: " + std::to_string(rc),
-					sinsp_logger::SEV_WARNING);
+		g_logger.log(FALCO_LOG_SEV_WARNING,
+					"Unexpected K8S pod restart count received: " + std::to_string(rc));
 		return;
 	}
 
@@ -822,9 +822,9 @@ inline void k8s_pod_t::set_restart_count(int rc)
 	}
 	else
 	{
-		g_logger.log("Unexpected K8S pod restart count received (" + std::to_string(rc) + 
-					", last recorded value " + std::to_string(m_restart_count_tot) + "), resetting diff to zero.",
-					sinsp_logger::SEV_WARNING);
+		g_logger.log(FALCO_LOG_SEV_WARNING,
+					"Unexpected K8S pod restart count received (" + std::to_string(rc) + 
+					", last recorded value " + std::to_string(m_restart_count_tot) + "), resetting diff to zero.");
 		m_restart_count_diff = 0;
 	}
 	m_restart_count_tot = rc;

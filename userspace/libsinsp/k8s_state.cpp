@@ -106,7 +106,7 @@ void k8s_state_t::update_event(k8s_event_t& evt, const Json::Value& item)
 	}
 	else
 	{
-		g_logger.log("NULL K8s event received.", sinsp_logger::SEV_WARNING);
+		g_logger.log(FALCO_LOG_SEV_WARNING, "NULL K8s event received.");
 	}
 }
 
@@ -342,7 +342,7 @@ void k8s_state_t::update_cache(const k8s_component::type_map::key_type& componen
 				}
 				else
 				{
-					g_logger.log("Attempt to cache already cached NAMESPACE: " + ns_name, sinsp_logger::SEV_ERROR);
+					g_logger.log(FALCO_LOG_SEV_ERROR, "Attempt to cache already cached NAMESPACE: " + ns_name);
 				}
 			}
 		}
@@ -364,7 +364,7 @@ void k8s_state_t::update_cache(const k8s_component::type_map::key_type& componen
 					}
 					else
 					{
-						g_logger.log("Attempt to cache already cached POD: " + c_id, sinsp_logger::SEV_ERROR);
+						g_logger.log(FALCO_LOG_SEV_ERROR, "Attempt to cache already cached POD: " + c_id);
 					}
 				}
 			}
@@ -389,7 +389,7 @@ void k8s_state_t::update_cache(const k8s_component::type_map::key_type& componen
 					}
 					else
 					{
-						g_logger.log("Attempt to cache already cached REPLICATION CONTROLLER: " + pod_uid, sinsp_logger::SEV_ERROR);
+						g_logger.log(FALCO_LOG_SEV_ERROR, "Attempt to cache already cached REPLICATION CONTROLLER: " + pod_uid);
 					}
 				}
 			}
@@ -414,7 +414,7 @@ void k8s_state_t::update_cache(const k8s_component::type_map::key_type& componen
 					}
 					else
 					{
-						g_logger.log("Attempt to cache already cached REPLICA SET: " + pod_uid, sinsp_logger::SEV_ERROR);
+						g_logger.log(FALCO_LOG_SEV_ERROR, "Attempt to cache already cached REPLICA SET: " + pod_uid);
 					}
 				}
 			}
@@ -439,7 +439,7 @@ void k8s_state_t::update_cache(const k8s_component::type_map::key_type& componen
 					}
 					else
 					{
-						g_logger.log("Attempt to cache already cached SERVICE: " + pod_uid, sinsp_logger::SEV_ERROR);
+						g_logger.log(FALCO_LOG_SEV_ERROR, "Attempt to cache already cached SERVICE: " + pod_uid);
 					}
 				}
 			}
@@ -465,7 +465,7 @@ void k8s_state_t::update_cache(const k8s_component::type_map::key_type& componen
 					}
 					else
 					{
-						g_logger.log("Attempt to cache already cached SERVICE: " + pod_uid, sinsp_logger::SEV_ERROR);
+						g_logger.log(FALCO_LOG_SEV_ERROR, "Attempt to cache already cached SERVICE: " + pod_uid);
 					}
 				}
 			}*/
@@ -490,7 +490,7 @@ void k8s_state_t::update_cache(const k8s_component::type_map::key_type& componen
 					}
 					else
 					{
-						g_logger.log("Attempt to cache already cached Deployment: " + pod_uid, sinsp_logger::SEV_ERROR);
+						g_logger.log(FALCO_LOG_SEV_ERROR, "Attempt to cache already cached Deployment: " + pod_uid);
 					}
 				}
 			}
@@ -811,9 +811,9 @@ Json::Value k8s_state_t::extract_capture_data(const Json::Value& item)
 	}
 	os << "Capture: [" << cap_item["type"].asString() << ',' << cap_item["kind"].asString() << ',' <<
 				cap_metadata["name"].asString() << ',' << cap_metadata["uid"].asString() << ',' << nspace << ']';
-	g_logger.log(os.str(), sinsp_logger::SEV_DEBUG);
-	//g_logger.log(item.toStyledString(), sinsp_logger::SEV_DEBUG);
-	//g_logger.log(cap_item.toStyledString(), sinsp_logger::SEV_DEBUG);
+	g_logger.log(FALCO_LOG_SEV_DEBUG, os.str());
+	//g_logger.log(FALCO_LOG_SEV_DEBUG, item.toStyledString());
+	//g_logger.log(FALCO_LOG_SEV_DEBUG, cap_item.toStyledString());
 
 #endif // HAS_CAPTURE
 

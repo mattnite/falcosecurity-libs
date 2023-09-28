@@ -150,13 +150,13 @@ void sinsp_curl::init_ssl(CURL* curl, ssl::ptr_t ssl_data)
 				check_error(curl_easy_setopt(curl, CURLOPT_SSLCERTTYPE, ssl_data->cert_type().c_str()));
 			}
 			check_error(curl_easy_setopt(curl, CURLOPT_SSLCERT, ssl_data->cert().c_str()));
-			g_logger.log("CURL SSL certificate: " + ssl_data->cert(), sinsp_logger::SEV_DEBUG);
+			g_logger.log(FALCO_LOG_SEV_DEBUG, "CURL SSL certificate: " + ssl_data->cert());
 		}
 
 		if(!ssl_data->key_passphrase().empty())
 		{
 			check_error(curl_easy_setopt(curl, CURLOPT_KEYPASSWD, ssl_data->key_passphrase().c_str()));
-			g_logger.log("CURL SSL key password SET. ", sinsp_logger::SEV_DEBUG);
+			g_logger.log(FALCO_LOG_SEV_DEBUG, "CURL SSL key password SET. ");
 		}
 
 		if(!ssl_data->key().empty())
@@ -166,26 +166,26 @@ void sinsp_curl::init_ssl(CURL* curl, ssl::ptr_t ssl_data)
 				check_error(curl_easy_setopt(curl, CURLOPT_SSLKEYTYPE, ssl_data->cert_type().c_str()));
 			}
 			check_error(curl_easy_setopt(curl, CURLOPT_SSLKEY, ssl_data->key().c_str()));
-			g_logger.log("CURL SSL key: " + ssl_data->key(), sinsp_logger::SEV_DEBUG);
+			g_logger.log(FALCO_LOG_SEV_DEBUG, "CURL SSL key: " + ssl_data->key());
 		}
 
 		if(ssl_data->verify_peer())
 		{
 			check_error(curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L));
 			check_error(curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L));
-			g_logger.log("CURL SSL peer and host verification ENABLED.", sinsp_logger::SEV_DEBUG);
+			g_logger.log(FALCO_LOG_SEV_DEBUG, "CURL SSL peer and host verification ENABLED.");
 		}
 		else
 		{
 			check_error(curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0));
 			check_error(curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0));
-			g_logger.log("CURL SSL peer and host verification DISABLED.", sinsp_logger::SEV_DEBUG);
+			g_logger.log(FALCO_LOG_SEV_DEBUG, "CURL SSL peer and host verification DISABLED.");
 		}
 
 		if(!ssl_data->ca_cert().empty())
 		{
 			check_error(curl_easy_setopt(curl, CURLOPT_CAINFO, ssl_data->ca_cert().c_str()));
-			g_logger.log("CURL SSL CA cert set to: " + ssl_data->ca_cert(), sinsp_logger::SEV_DEBUG);
+			g_logger.log(FALCO_LOG_SEV_DEBUG, "CURL SSL CA cert set to: " + ssl_data->ca_cert());
 		}
 	}
 }
@@ -199,8 +199,8 @@ std::string sinsp_curl::get_data(bool do_log)
 	}
 	if(do_log)
 	{
-		g_logger.log("CURL error while connecting to " + m_uri.to_string(false) + ", "
-					 "response: [" + os.str() + ']', sinsp_logger::SEV_ERROR);
+		g_logger.log(FALCO_LOG_SEV_ERROR, "CURL error while connecting to " + m_uri.to_string(false) + ", "
+					 "response: [" + os.str() + ']');
 	}
 	return "";
 }
@@ -239,7 +239,7 @@ size_t sinsp_curl::header_callback(char *buffer, size_t size, size_t nitems, voi
 		sz = buf.length();
 		if(sz < CURL_MAX_HTTP_HEADER)
 		{
-			g_logger.log("HTTP redirect Location: (" + buf + ')', sinsp_logger::SEV_TRACE);
+			g_logger.log(FALCO_LOG_SEV_TRACE, "HTTP redirect Location: (" + buf + ')');
 			strlcpy((char*) userdata, buf.c_str(), CURL_MAX_HTTP_HEADER);
 		}
 	}
@@ -256,8 +256,8 @@ bool sinsp_curl::handle_redirect(uri& url, std::string&& loc, std::ostream& os)
 {
 	if(!loc.empty())
 	{
-		g_logger.log("HTTP redirect  received from [" + url.to_string(false) + ']',
-					 sinsp_logger::SEV_INFO);
+		g_logger.log(FALCO_LOG_SEV_INFO,
+					 "HTTP redirect  received from [" + url.to_string(false) + ']');
 		std::string::size_type url_pos = loc.find("//");
 		if(url_pos != std::string::npos)
 		{
@@ -273,14 +273,14 @@ bool sinsp_curl::handle_redirect(uri& url, std::string&& loc, std::ostream& os)
 		{
 			url.set_path(trim(loc));
 		}
-		g_logger.log("HTTP redirecting to [" + url.to_string(false) + "].",
-					 sinsp_logger::SEV_INFO);
+		g_logger.log(FALCO_LOG_SEV_INFO,
+					 "HTTP redirecting to [" + url.to_string(false) + "].");
 		return true;
 	}
 	else
 	{
-		g_logger.log("CURL redirect received from [" + url.to_string(false) + "], "
-					 "but location not found.", sinsp_logger::SEV_ERROR);
+		g_logger.log(FALCO_LOG_SEV_ERROR, "CURL redirect received from [" + url.to_string(false) + "], "
+					 "but location not found.");
 		return false;
 	}
 	return false;
@@ -323,13 +323,13 @@ bool sinsp_curl::get_data(std::ostream& os)
 		check_error(curl_easy_getinfo(m_curl, CURLINFO_RESPONSE_CODE, &m_response_code));
 		if(m_response_code >= 400)
 		{
-			g_logger.log("CURL HTTP error while accessing [" + m_uri.to_string(false) + "]: " +
-						 std::to_string(m_response_code) + " (" + http_reason::get(m_response_code) + ')', sinsp_logger::SEV_ERROR);
+			g_logger.log(FALCO_LOG_SEV_ERROR, "CURL HTTP error while accessing [" + m_uri.to_string(false) + "]: " +
+						 std::to_string(m_response_code) + " (" + http_reason::get(m_response_code) + ')');
 			return false;
 		}
 		else if(is_redirect(m_response_code))
 		{
-			g_logger.log("HTTP redirect (" + std::to_string(m_response_code) + ')', sinsp_logger::SEV_DEBUG);
+			g_logger.log(FALCO_LOG_SEV_DEBUG, "HTTP redirect (" + std::to_string(m_response_code) + ')');
 			if(handle_redirect(m_uri, std::string(m_redirect), os))
 			{
 				std::ostringstream* pos = dynamic_cast<std::ostringstream*>(&os);
@@ -340,9 +340,9 @@ bool sinsp_curl::get_data(std::ostream& os)
 				}
 				else
 				{
-					g_logger.log("HTTP redirect received from [" + m_uri.to_string(false) + "] but "
-							 "output stream can not be obtained (dynamic cast failed).",
-							 sinsp_logger::SEV_ERROR);
+					g_logger.log(FALCO_LOG_SEV_ERROR,
+							 "HTTP redirect received from [" + m_uri.to_string(false) + "] but "
+							 "output stream can not be obtained (dynamic cast failed).");
 					return false;
 				}
 			}
@@ -430,7 +430,7 @@ void sinsp_curl::dump(const char *text, unsigned char *ptr, size_t size, char no
 		snprintf(stream, DBG_BUF_SIZE, "%c", '\n');
 		os << stream;
 	}
-	g_logger.log("CURL: " + os .str(), sinsp_logger::SEV_DEBUG);
+	g_logger.log(FALCO_LOG_SEV_DEBUG, "CURL: " + os .str());
 }
 
 int sinsp_curl::trace(CURL *handle, curl_infotype type, char *data, size_t size, void *userp)

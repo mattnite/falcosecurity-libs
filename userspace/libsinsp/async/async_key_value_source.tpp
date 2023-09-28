@@ -52,9 +52,9 @@ async_key_value_source<key_type, value_type>::~async_key_value_source()
 	}
 	catch(...)
 	{
-		g_logger.log(std::string(__FUNCTION__) +
-		             ": Exception in destructor",
-		             sinsp_logger::SEV_ERROR);
+		g_logger.log(FALCO_LOG_SEV_ERROR,
+			     std::string(__FUNCTION__) +
+		             ": Exception in destructor");
 	}
 }
 
@@ -179,8 +179,8 @@ bool async_key_value_source<key_type, value_type>::lookup_delayed(
 
 		if(!inserted)
 		{
-			g_logger.log("async_key_value_source: Failed to insert",
-				     sinsp_logger::SEV_ERROR);
+			g_logger.log(FALCO_LOG_SEV_ERROR,
+				     "async_key_value_source: Failed to insert");
 			return false;
 		}
 
@@ -297,18 +297,18 @@ bool async_key_value_source<key_type, value_type>::dequeue_next_key(key_type& ke
 			}
 			else
 			{
-				g_logger.log("async_key_value_source: Key not found when"
-					"retrieving value, TTL expired",
-					sinsp_logger::SEV_DEBUG);
+				g_logger.log(FALCO_LOG_SEV_DEBUG,
+					"async_key_value_source: Key not found when"
+					"retrieving value, TTL expired");
 			}
 		}
 		else
 		{
 			std::chrono::duration<double> dur = top_element.first - now;
-			g_logger.log("async_key_value_source: Waiting " +
+			g_logger.log(FALCO_LOG_SEV_DEBUG,
+				     "async_key_value_source: Waiting " +
 				     std::to_string(dur.count()) +
-				     " before dequeuing top job",
-				     sinsp_logger::SEV_DEBUG);
+				     " before dequeuing top job");
 		}
 	}
 
@@ -334,8 +334,8 @@ void async_key_value_source<key_type, value_type>::store_value(
 	auto itr = m_value_map.find(key);
 	if(itr == m_value_map.end())
 	{
-		g_logger.log("async_key_value_source: Key not found when storing value",
-			     sinsp_logger::SEV_WARNING);
+		g_logger.log(FALCO_LOG_SEV_WARNING,
+			     "async_key_value_source: Key not found when storing value");
 		return;
 	}
 
@@ -362,9 +362,9 @@ void async_key_value_source<key_type, value_type>::defer_lookup(
 
 	auto start_time = std::chrono::steady_clock::now() + delay;
 
-	g_logger.log("async_key_value_source: defer_lookup re-adding to request queue delay=" +
-		     std::to_string(delay.count()),
-		     sinsp_logger::SEV_DEBUG);
+	g_logger.log(FALCO_LOG_SEV_DEBUG,
+		     "async_key_value_source: defer_lookup re-adding to request queue delay=" +
+		     std::to_string(delay.count()));
 
 	m_request_queue.push(std::make_pair(start_time, key));
 	m_request_set.insert(key);

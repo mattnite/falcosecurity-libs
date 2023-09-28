@@ -30,7 +30,7 @@ TEST(sinsp_logger, constructor)
 {
 	auto logger = sinsp_logger();
 	ASSERT_FALSE(logger.has_output());
-	ASSERT_EQ(logger.get_severity(), sinsp_logger::SEV_INFO);
+	ASSERT_EQ(logger.get_severity(), FALCO_LOG_SEV_INFO);
 	ASSERT_EQ(logger.get_log_output_type(), sinsp_logger::OT_NONE);
 }
 
@@ -60,12 +60,12 @@ TEST(sinsp_logger, output_type)
 TEST(sinsp_logger, get_set_severity)
 {
 	auto logger = sinsp_logger();
-	logger.set_severity(sinsp_logger::SEV_FATAL);
-	ASSERT_EQ(logger.get_severity(), sinsp_logger::SEV_FATAL);
-	ASSERT_TRUE(logger.is_enabled(sinsp_logger::SEV_FATAL));
-	ASSERT_FALSE(logger.is_enabled(sinsp_logger::SEV_TRACE));
-	ASSERT_FALSE(logger.is_enabled(sinsp_logger::SEV_CRITICAL));
-	logger.set_severity(sinsp_logger::SEV_NOTICE);
-	ASSERT_FALSE(logger.is_enabled(sinsp_logger::SEV_INFO));
-	ASSERT_TRUE(logger.is_enabled(sinsp_logger::SEV_ERROR));
+	logger.set_severity(FALCO_LOG_SEV_FATAL);
+	ASSERT_EQ(logger.get_severity(), FALCO_LOG_SEV_FATAL);
+	ASSERT_TRUE(logger.is_enabled(FALCO_LOG_SEV_FATAL));
+	ASSERT_FALSE(logger.is_enabled(FALCO_LOG_SEV_TRACE));
+	ASSERT_FALSE(logger.is_enabled(FALCO_LOG_SEV_CRITICAL));
+	logger.set_severity(FALCO_LOG_SEV_NOTICE);
+	ASSERT_FALSE(logger.is_enabled(FALCO_LOG_SEV_INFO));
+	ASSERT_TRUE(logger.is_enabled(FALCO_LOG_SEV_ERROR));
 }

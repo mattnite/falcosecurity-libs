@@ -31,7 +31,7 @@ limitations under the License.
 #define ASSERT(X) \
         if(!(X)) \
         { \
-                g_logger.format(sinsp_logger::SEV_ERROR, "ASSERTION %s at %s:%d", #X , __FILE__, __LINE__); \
+                g_logger.format(FALCO_LOG_SEV_ERROR, "ASSERTION %s at %s:%d", #X , __FILE__, __LINE__); \
                 assert(X); \
         }
 #else

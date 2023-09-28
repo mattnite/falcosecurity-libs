@@ -672,10 +672,10 @@ void sinsp_threadinfo::set_env(const char* env, size_t len)
 		// this may fail for short-lived processes
 		if (set_env_from_proc())
 		{
-			g_logger.format(sinsp_logger::SEV_DEBUG, "Large environment for process %lu [%s], loaded from /proc", m_pid, m_comm.c_str());
+			g_logger.format(FALCO_LOG_SEV_DEBUG, "Large environment for process %lu [%s], loaded from /proc", m_pid, m_comm.c_str());
 			return;
 		} else {
-			g_logger.format(sinsp_logger::SEV_INFO, "Failed to load environment for process %lu [%s] from /proc, using first %d bytes", m_pid, m_comm.c_str(), SCAP_MAX_ENV_SIZE);
+			g_logger.format(FALCO_LOG_SEV_INFO, "Failed to load environment for process %lu [%s] from /proc, using first %d bytes", m_pid, m_comm.c_str(), SCAP_MAX_ENV_SIZE);
 		}
 	}
 
@@ -1143,11 +1143,11 @@ void sinsp_threadinfo::traverse_parent_state(visitor_func_t &visitor)
 				// Note we only log a loop once for a given main thread, to avoid flooding logs.
 				if(!m_parent_loop_detected)
 				{
-					g_logger.log(std::string("Loop in parent thread state detected for pid ") +
+					g_logger.log(FALCO_LOG_SEV_WARNING,
+						     std::string("Loop in parent thread state detected for pid ") +
 						     std::to_string(m_pid) +
 						     ". stopped at tid= " + std::to_string(slow->m_tid) +
-						     " ptid=" + std::to_string(slow->m_ptid),
-						     sinsp_logger::SEV_WARNING);
+						     " ptid=" + std::to_string(slow->m_ptid));
 					m_parent_loop_detected = true;
 				}
 				return;
@@ -1238,19 +1238,19 @@ std::string sinsp_threadinfo::get_path_for_dir_fd(int64_t dir_fd)
 		ret = readlink(proc_path, dirfd_path, sizeof(dirfd_path) - 1);
 		if (ret < 0)
 		{
-			g_logger.log("Unable to determine path for file descriptor.",
-			             sinsp_logger::SEV_INFO);
+			g_logger.log(FALCO_LOG_SEV_INFO,
+			             "Unable to determine path for file descriptor.");
 			return "";
 		}
 		dirfd_path[ret] = '\0';
 		std::string rel_path_base = dirfd_path;
 		sanitize_string(rel_path_base);
 		rel_path_base.append("/");
-		g_logger.log(std::string("Translating to ") + rel_path_base);
+		g_logger.log(FALCO_LOG_SEV_INFO, std::string("Translating to ") + rel_path_base);
 		return rel_path_base;
 #else
-		g_logger.log("Can't translate working directory outside of live capture.",
-		             sinsp_logger::SEV_INFO);
+		g_logger.log(FALCO_LOG_SEV_INFO,
+		             "Can't translate working directory outside of live capture.");
 		return "";
 #endif
 #endif // _WIN32
@@ -1586,7 +1586,7 @@ bool sinsp_thread_manager::add_thread(sinsp_threadinfo *threadinfo, bool from_sc
 		// rate limit messages to avoid spamming the logs
 		if (m_n_drops % m_max_thread_table_size == 0)
 		{
-			g_logger.format(sinsp_logger::SEV_INFO, "Thread table full, dropping tid %lu (pid %lu, comm \"%s\")",
+			g_logger.format(FALCO_LOG_SEV_INFO, "Thread table full, dropping tid %lu (pid %lu, comm \"%s\")",
 				threadinfo->m_tid, threadinfo->m_pid, threadinfo->m_comm.c_str());
 		}
 		m_n_drops++;
@@ -2044,7 +2044,7 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::get_thread_ref(int64_t tid, bool q
         // defensive check here to protect both, callers of get_env and get_thread.
         if (!m_inspector->m_h)
         {
-            g_logger.format(sinsp_logger::SEV_INFO, "%s: Unable to complete for tid=%"
+            g_logger.format(FALCO_LOG_SEV_INFO, "%s: Unable to complete for tid=%"
                             PRIu64 ": sinsp::scap_t* is uninitialized", __func__, tid);
             return NULL;
         }
@@ -2063,7 +2063,7 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::get_thread_ref(int64_t tid, bool q
 
         if(m_n_proc_lookups == m_max_n_proc_lookups)
         {
-            g_logger.format(sinsp_logger::SEV_INFO, "Reached max process lookup number, duration=%" PRIu64 "ms",
+            g_logger.format(FALCO_LOG_SEV_INFO, "Reached max process lookup number, duration=%" PRIu64 "ms",
                 m_n_proc_lookups_duration_ns / 1000000);
         }
 
@@ -2082,7 +2082,7 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::get_thread_ref(int64_t tid, bool q
                 scan_sockets = true;
                 if(m_n_proc_lookups == m_max_n_proc_socket_lookups)
                 {
-                    g_logger.format(sinsp_logger::SEV_INFO, "Reached max socket lookup number, tid=%" PRIu64 ", duration=%" PRIu64 "ms",
+                    g_logger.format(FALCO_LOG_SEV_INFO, "Reached max socket lookup number, tid=%" PRIu64 ", duration=%" PRIu64 "ms",
                         tid, m_n_proc_lookups_duration_ns / 1000000);
                 }
             }

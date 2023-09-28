@@ -171,7 +171,7 @@ k8s_container::list k8s_pod_handler::extract_pod_containers(const Json::Value& i
 				}
 				else
 				{
-					g_logger.log("Port not found, setting value to 0", sinsp_logger::SEV_WARNING);
+					g_logger.log(FALCO_LOG_SEV_WARNING, "Port not found, setting value to 0");
 					cont_port.set_port(0);
 				}
 				const Json::Value& protocol = port["protocol"];
@@ -182,7 +182,7 @@ k8s_container::list k8s_pod_handler::extract_pod_containers(const Json::Value& i
 				else
 				{
 					std::string port_name = name.isNull() ? "[NO NAME]" : name.asString();
-					g_logger.log("Protocol not found for port: " + port_name, sinsp_logger::SEV_WARNING);
+					g_logger.log(FALCO_LOG_SEV_WARNING, "Protocol not found for port: " + port_name);
 				}
 				cont_ports.push_back(cont_port);
 			}
@@ -276,8 +276,8 @@ bool k8s_pod_handler::handle_component(const Json::Value& json, const msg_data* 
 		}
 		else if(data->m_reason != k8s_component::COMPONENT_ERROR)
 		{
-			g_logger.log(std::string("Unsupported K8S " + name() + " event reason: ") +
-						 std::to_string(data->m_reason), sinsp_logger::SEV_ERROR);
+			g_logger.log(FALCO_LOG_SEV_ERROR, std::string("Unsupported K8S " + name() + " event reason: ") +
+						 std::to_string(data->m_reason));
 			return false;
 		}
 	}

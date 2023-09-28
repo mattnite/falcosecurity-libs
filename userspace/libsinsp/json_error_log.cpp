@@ -93,7 +93,7 @@ void json_error_log::log(const std::string &json, const std::string &errstr,
 					       std::move(tags),
 					       user_event_logger::SEV_EVT_WARNING);
 
-		g_logger.log("Logging user event: " + evt.to_string(), sinsp_logger::SEV_DEBUG);
+		g_logger.log(FALCO_LOG_SEV_DEBUG, "Logging user event: " + evt.to_string());
 
 		user_event_logger::log(evt, user_event_logger::SEV_EVT_WARNING);
 	}

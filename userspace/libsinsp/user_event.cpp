@@ -70,8 +70,8 @@ bool event_scope::add(const std::string& key, const std::string& value, const st
 	}
 	else
 	{
-		g_logger.log("Scope key is invalid: [" + key + "], entry will not be added to scope.",
-					 sinsp_logger::SEV_WARNING);
+		g_logger.log(FALCO_LOG_SEV_WARNING,
+					 "Scope key is invalid: [" + key + "], entry will not be added to scope.");
 	}
 	return false;
 }
@@ -99,11 +99,11 @@ void event_scope::regex_error(const std::string& call, size_t ret, regex_t* preg
 	char errbuf[256] = {0};
 	if(regerror(ret, preg, errbuf, 256))
 	{
-		g_logger.log(call + "() error: " + errbuf, sinsp_logger::SEV_WARNING);
+		g_logger.log(FALCO_LOG_SEV_WARNING, call + "() error: " + errbuf);
 	}
 	else
 	{
-		g_logger.log("Can't obtain " + call + "() [" + str + "] error.", sinsp_logger::SEV_WARNING);
+		g_logger.log(FALCO_LOG_SEV_WARNING, "Can't obtain " + call + "() [" + str + "] error.");
 	}
 }
 

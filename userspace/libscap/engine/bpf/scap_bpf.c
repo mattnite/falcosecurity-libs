@@ -49,7 +49,7 @@ limitations under the License.
 #include "noop.h"
 #include "strerror.h"
 
-static const char * const bpf_kernel_counters_stats_names[] = {
+static const char *const bpf_kernel_counters_stats_names[] = {
 	[BPF_N_EVTS] = "n_evts",
 	[BPF_N_DROPS_BUFFER_TOTAL] = "n_drops_buffer_total",
 	[BPF_N_DROPS_BUFFER_CLONE_FORK_ENTER] = "n_drops_buffer_clone_fork_enter",
@@ -70,23 +70,20 @@ static const char * const bpf_kernel_counters_stats_names[] = {
 	[BPF_N_DROPS] = "n_drops",
 };
 
-static const char * const bpf_libbpf_stats_names[] = {
-	[RUN_CNT] = ".run_cnt", ///< `bpf_prog_info` run_cnt.
+static const char *const bpf_libbpf_stats_names[] = {
+	[RUN_CNT] = ".run_cnt",		///< `bpf_prog_info` run_cnt.
 	[RUN_TIME_NS] = ".run_time_ns", ///<`bpf_prog_info` run_time_ns.
 	[AVG_TIME_NS] = ".avg_time_ns", ///< Average time spent in bpg program, calculation: run_time_ns / run_cnt.
 };
 
-static inline scap_evt* scap_bpf_next_event(scap_device* dev)
+static inline scap_evt *scap_bpf_next_event(scap_device *dev)
 {
 	return scap_bpf_evt_from_perf_sample(dev->m_sn_next_event);
 }
 
-static inline void scap_bpf_advance_to_next_evt(scap_device* dev, scap_evt *event)
+static inline void scap_bpf_advance_to_next_evt(scap_device *dev, scap_evt *event)
 {
-	scap_bpf_advance_to_evt(dev, true,
-				dev->m_sn_next_event,
-				&dev->m_sn_next_event,
-				&dev->m_sn_len);
+	scap_bpf_advance_to_evt(dev, true, dev->m_sn_next_event, &dev->m_sn_next_event, &dev->m_sn_len);
 }
 
 #define GET_BUF_POINTERS scap_bpf_get_buf_pointers
@@ -106,24 +103,25 @@ static inline void scap_bpf_advance_to_next_evt(scap_device* dev, scap_evt *even
 // subset of features needed.
 //
 
-struct bpf_map_data {
+struct bpf_map_data
+{
 	int fd;
 	size_t elf_offset;
 	struct bpf_map_def def;
 };
 
-static struct bpf_engine* alloc_handle(scap_t* main_handle, char* lasterr_ptr)
+static struct bpf_engine *alloc_handle(scap_t *main_handle, char *lasterr_ptr)
 {
 	struct bpf_engine *engine = calloc(1, sizeof(struct bpf_engine));
 	if(engine)
 	{
 		engine->m_lasterr = lasterr_ptr;
-		for(int j=0; j < BPF_PROGS_TAIL_CALLED_MAX; j++)
+		for(int j = 0; j < BPF_PROGS_TAIL_CALLED_MAX; j++)
 		{
 			engine->m_tail_called_fds[j] = -1;
 		}
 
-		for(int j=0; j < BPF_PROG_ATTACHED_MAX; j++)
+		for(int j = 0; j < BPF_PROG_ATTACHED_MAX; j++)
 		{
 			engine->m_attached_progs[j].fd = -1;
 		}
@@ -131,26 +129,22 @@ static struct bpf_engine* alloc_handle(scap_t* main_handle, char* lasterr_ptr)
 	return engine;
 }
 
-static void free_handle(struct scap_engine_handle engine)
-{
-	free(engine.m_handle);
-}
+static void free_handle(struct scap_engine_handle engine) { free(engine.m_handle); }
 
 #ifndef UINT32_MAX
-# define UINT32_MAX (4294967295U)
+#define UINT32_MAX (4294967295U)
 #endif
 
 /* Recommended log buffer size.
- * Taken from libbpf source code: https://github.com/libbpf/libbpf/blob/67a4b1464349345e483df26ed93f8d388a60cee1/src/bpf.h#L201
+ * Taken from libbpf source code:
+ * https://github.com/libbpf/libbpf/blob/67a4b1464349345e483df26ed93f8d388a60cee1/src/bpf.h#L201
  */
 static const int BPF_LOG_SIZE = UINT32_MAX >> 8; /* verifier maximum in kernels <= 5.1 */
 
-static char* license;
+static char *license;
 
 #define FILLER_NAME_FN(x) #x,
-static const char *g_filler_names[PPM_FILLER_MAX] = {
-	FILLER_LIST_MAPPER(FILLER_NAME_FN)
-};
+static const char *g_filler_names[PPM_FILLER_MAX] = {FILLER_LIST_MAPPER(FILLER_NAME_FN)};
 #undef FILLER_NAME_FN
 
 static int sys_bpf(enum bpf_cmd cmd, union bpf_attr *attr, unsigned int size)
@@ -158,17 +152,12 @@ static int sys_bpf(enum bpf_cmd cmd, union bpf_attr *attr, unsigned int size)
 	return syscall(__NR_bpf, cmd, attr, size);
 }
 
-static int sys_perf_event_open(struct perf_event_attr *attr,
-			       pid_t pid, int cpu, int group_fd,
-			       unsigned long flags)
+static int sys_perf_event_open(struct perf_event_attr *attr, pid_t pid, int cpu, int group_fd, unsigned long flags)
 {
 	return syscall(__NR_perf_event_open, attr, pid, cpu, group_fd, flags);
 }
 
-static inline __u64 ptr_to_u64(const void *ptr)
-{
-	return (__u64) (unsigned long) ptr;
-}
+static inline __u64 ptr_to_u64(const void *ptr) { return (__u64)(unsigned long)ptr; }
 
 /* Here the filler_name is something like 'sys_open_x'.
  * Starting from the entire section name 'raw_tracepoint/filler/sys_open_x'
@@ -199,8 +188,8 @@ static int bpf_map_update_elem(int fd, const void *key, const void *value, uint6
 	bzero(&attr, sizeof(attr));
 
 	attr.map_fd = fd;
-	attr.key = (unsigned long) key;
-	attr.value = (unsigned long) value;
+	attr.key = (unsigned long)key;
+	attr.value = (unsigned long)value;
 	attr.flags = flags;
 
 	return sys_bpf(BPF_MAP_UPDATE_ELEM, &attr, sizeof(attr));
@@ -213,15 +202,13 @@ static int bpf_map_lookup_elem(int fd, const void *key, void *value)
 	bzero(&attr, sizeof(attr));
 
 	attr.map_fd = fd;
-	attr.key = (unsigned long) key;
-	attr.value = (unsigned long) value;
+	attr.key = (unsigned long)key;
+	attr.value = (unsigned long)value;
 
 	return sys_bpf(BPF_MAP_LOOKUP_ELEM, &attr, sizeof(attr));
 }
 
-static int bpf_map_create(enum bpf_map_type map_type,
-			  int key_size, int value_size, int max_entries,
-			  uint32_t map_flags)
+static int bpf_map_create(enum bpf_map_type map_type, int key_size, int value_size, int max_entries, uint32_t map_flags)
 {
 	union bpf_attr attr;
 
@@ -260,17 +247,13 @@ static int bpf_obj_get_info_by_fd(int fd, void *info, __u32 *info_len)
 	attr.info.info = ptr_to_u64(info);
 
 	err = sys_bpf(BPF_OBJ_GET_INFO_BY_FD, &attr, sizeof(attr));
-	if (!err)
+	if(!err)
 		*info_len = attr.info.info_len;
 	return SCAP_SUCCESS;
 }
 
-static int bpf_load_program(const struct bpf_insn *insns,
-			    enum bpf_prog_type type,
-			    size_t insns_cnt,
-			    char *log_buf,
-			    size_t log_buf_sz,
-			    const char *prog_name)
+static int bpf_load_program(const struct bpf_insn *insns, enum bpf_prog_type type, size_t insns_cnt, char *log_buf,
+			    size_t log_buf_sz, const char *prog_name)
 {
 	union bpf_attr attr;
 	int fd;
@@ -278,13 +261,14 @@ static int bpf_load_program(const struct bpf_insn *insns,
 	bzero(&attr, sizeof(attr));
 
 	attr.prog_type = type;
-	attr.insn_cnt = (uint32_t) insns_cnt;
-	attr.insns = (unsigned long) insns;
-	attr.license = (unsigned long) license;
-	attr.log_buf = (unsigned long) NULL;
+	attr.insn_cnt = (uint32_t)insns_cnt;
+	attr.insns = (unsigned long)insns;
+	attr.license = (unsigned long)license;
+	attr.log_buf = (unsigned long)NULL;
 	attr.log_size = 0;
 	attr.log_level = 0;
-	if (prog_name != NULL) {
+	if(prog_name != NULL)
+	{
 		snprintf(attr.prog_name, BPF_OBJ_NAME_LEN, "%s", prog_name);
 	}
 
@@ -303,7 +287,7 @@ static int bpf_load_program(const struct bpf_insn *insns,
 	 * only if we have a buffer for collecting them (so only if we
 	 * pass to `bpf_load_program()` function a `log_buf`!= NULL).
 	 */
-	attr.log_buf = (unsigned long) log_buf;
+	attr.log_buf = (unsigned long)log_buf;
 	attr.log_size = log_buf_sz;
 	attr.log_level = 1;
 	log_buf[0] = 0;
@@ -358,9 +342,8 @@ static int cmp_symbols(const void *l, const void *r)
 	}
 }
 
-static int32_t load_elf_maps_section(struct bpf_engine *handle, struct bpf_map_data *maps,
-				     int maps_shndx, Elf *elf, Elf_Data *symbols,
-				     int strtabidx, int *nr_maps)
+static int32_t load_elf_maps_section(struct bpf_engine *handle, struct bpf_map_data *maps, int maps_shndx, Elf *elf,
+				     Elf_Data *symbols, int strtabidx, int *nr_maps)
 {
 	Elf_Data *data_maps = NULL;
 	GElf_Sym *sym;
@@ -426,19 +409,15 @@ static int32_t load_maps(struct bpf_engine *handle, struct bpf_map_data *maps, i
 
 	for(j = 0; j < nr_maps; ++j)
 	{
-		if(j == SCAP_PERF_MAP ||
-		   j == SCAP_LOCAL_STATE_MAP ||
-		   j == SCAP_FRAME_SCRATCH_MAP ||
+		if(j == SCAP_PERF_MAP || j == SCAP_LOCAL_STATE_MAP || j == SCAP_FRAME_SCRATCH_MAP ||
 		   j == SCAP_TMP_SCRATCH_MAP)
 		{
 			maps[j].def.max_entries = handle->m_ncpus;
 		}
 
-		handle->m_bpf_map_fds[j] = bpf_map_create(maps[j].def.type,
-							  maps[j].def.key_size,
-							  maps[j].def.value_size,
-							  maps[j].def.max_entries,
-							  maps[j].def.map_flags);
+		handle->m_bpf_map_fds[j] =
+			bpf_map_create(maps[j].def.type, maps[j].def.key_size, maps[j].def.value_size,
+				       maps[j].def.max_entries, maps[j].def.map_flags);
 
 		maps[j].fd = handle->m_bpf_map_fds[j];
 
@@ -456,9 +435,8 @@ static int32_t load_maps(struct bpf_engine *handle, struct bpf_map_data *maps, i
 	return SCAP_SUCCESS;
 }
 
-static int32_t parse_relocations(struct bpf_engine *handle, Elf_Data *data, Elf_Data *symbols,
-				 GElf_Shdr *shdr, struct bpf_insn *insn,
-				 struct bpf_map_data *maps, int nr_maps)
+static int32_t parse_relocations(struct bpf_engine *handle, Elf_Data *data, Elf_Data *symbols, GElf_Shdr *shdr,
+				 struct bpf_insn *insn, struct bpf_map_data *maps, int nr_maps)
 {
 	int nrels;
 	int i;
@@ -481,7 +459,8 @@ static int32_t parse_relocations(struct bpf_engine *handle, Elf_Data *data, Elf_
 
 		if(insn[insn_idx].code != (BPF_LD | BPF_IMM | BPF_DW))
 		{
-			return scap_errprintf(handle->m_lasterr, 0, "invalid relocation for insn[%d].code 0x%x", insn_idx, insn[insn_idx].code);
+			return scap_errprintf(handle->m_lasterr, 0, "invalid relocation for insn[%d].code 0x%x",
+					      insn_idx, insn[insn_idx].code);
 		}
 
 		insn[insn_idx].src_reg = BPF_PSEUDO_MAP_FD;
@@ -501,7 +480,8 @@ static int32_t parse_relocations(struct bpf_engine *handle, Elf_Data *data, Elf_
 		}
 		else
 		{
-			return scap_errprintf(handle->m_lasterr, 0, "invalid relocation for insn[%d] no map_data match\n", insn_idx);
+			return scap_errprintf(handle->m_lasterr, 0,
+					      "invalid relocation for insn[%d] no map_data match\n", insn_idx);
 		}
 	}
 
@@ -509,7 +489,7 @@ static int32_t parse_relocations(struct bpf_engine *handle, Elf_Data *data, Elf_
 }
 
 /* load all bpf programs */
-static int32_t load_single_prog(struct bpf_engine* handle, const char *event, struct bpf_insn *prog, int size)
+static int32_t load_single_prog(struct bpf_engine *handle, const char *event, struct bpf_insn *prog, int size)
 {
 	enum bpf_prog_type program_type;
 	size_t insns_cnt;
@@ -550,9 +530,12 @@ static int32_t load_single_prog(struct bpf_engine* handle, const char *event, st
 	 * to the last word after '/', if possible.
 	 */
 	final_section_name = strrchr(event, '/');
-	if (final_section_name != NULL) {
+	if(final_section_name != NULL)
+	{
 		final_section_name++;
-	} else {
+	}
+	else
+	{
 		final_section_name = event;
 	}
 
@@ -568,7 +551,8 @@ static int32_t load_single_prog(struct bpf_engine* handle, const char *event, st
 		{
 			fprintf(stderr, "-- BEGIN PROG LOAD LOG --\n%s\n-- END PROG LOAD LOG --\n", error);
 			free(error);
-			return scap_errprintf(handle->m_lasterr, -fd, "libscap: bpf_load_program() event=%s", full_event);
+			return scap_errprintf(handle->m_lasterr, -fd, "libscap: bpf_load_program() event=%s",
+					      full_event);
 		}
 	}
 	free(error);
@@ -581,7 +565,9 @@ static int32_t load_single_prog(struct bpf_engine* handle, const char *event, st
 	{
 		if(handle->m_tail_called_cnt + 1 >= BPF_PROGS_TAIL_CALLED_MAX)
 		{
-			return scap_errprintf(handle->m_lasterr, 0, "libscap: too many tail_called programs recorded: %d (limit is %d)", handle->m_tail_called_cnt + 1 ,BPF_PROGS_TAIL_CALLED_MAX);
+			return scap_errprintf(handle->m_lasterr, 0,
+					      "libscap: too many tail_called programs recorded: %d (limit is %d)",
+					      handle->m_tail_called_cnt + 1, BPF_PROGS_TAIL_CALLED_MAX);
 		}
 
 		handle->m_tail_called_fds[handle->m_tail_called_cnt++] = fd;
@@ -597,16 +583,19 @@ static int32_t load_single_prog(struct bpf_engine* handle, const char *event, st
 		{
 			return scap_errprintf(handle->m_lasterr, 0, "invalid filler name: %s", event);
 		}
-		else if (prog_id >= BPF_PROGS_TAIL_CALLED_MAX)
+		else if(prog_id >= BPF_PROGS_TAIL_CALLED_MAX)
 		{
-			return scap_errprintf(handle->m_lasterr, 0, "program ID exceeds BPF_PROGS_TAIL_CALLED_MAX limit (%d/%d)", prog_id, BPF_PROGS_TAIL_CALLED_MAX);
+			return scap_errprintf(handle->m_lasterr, 0,
+					      "program ID exceeds BPF_PROGS_TAIL_CALLED_MAX limit (%d/%d)", prog_id,
+					      BPF_PROGS_TAIL_CALLED_MAX);
 		}
 
 		/* Fill the tail table. The key is our filler internal code extracted
 		 * from `g_filler_names` in `lookup_filler_id` function. The value
 		 * is the program fd.
 		 */
-		err = bpf_map_update_elem(handle->m_bpf_map_fds[handle->m_bpf_prog_array_map_idx], &prog_id, &fd, BPF_ANY);
+		err = bpf_map_update_elem(handle->m_bpf_map_fds[handle->m_bpf_prog_array_map_idx], &prog_id, &fd,
+					  BPF_ANY);
 		if(err < 0)
 		{
 			return scap_errprintf(handle->m_lasterr, -err, "failure populating program array");
@@ -653,17 +642,20 @@ static int32_t load_single_prog(struct bpf_engine* handle, const char *event, st
 
 	if(is_sched_prog_fork_move_args(event))
 	{
-		fill_attached_prog_info(&handle->m_attached_progs[BPF_PROG_SCHED_PROC_FORK_MOVE_ARGS], raw_tp, event, fd);
+		fill_attached_prog_info(&handle->m_attached_progs[BPF_PROG_SCHED_PROC_FORK_MOVE_ARGS], raw_tp, event,
+					fd);
 	}
 
 	if(is_sched_prog_fork_missing_child(event))
 	{
-		fill_attached_prog_info(&handle->m_attached_progs[BPF_PROG_SCHED_PROC_FORK_MISSING_CHILD], raw_tp, event, fd);
+		fill_attached_prog_info(&handle->m_attached_progs[BPF_PROG_SCHED_PROC_FORK_MISSING_CHILD], raw_tp,
+					event, fd);
 	}
 
 	if(is_sched_prog_exec_missing_exit(event))
 	{
-		fill_attached_prog_info(&handle->m_attached_progs[BPF_PROG_SCHED_PROC_EXEC_MISSING_EXIT], raw_tp, event, fd);
+		fill_attached_prog_info(&handle->m_attached_progs[BPF_PROG_SCHED_PROC_EXEC_MISSING_EXIT], raw_tp, event,
+					fd);
 	}
 
 	return SCAP_SUCCESS;
@@ -698,7 +690,7 @@ static int32_t load_bpf_file(struct bpf_engine *handle)
 		return scap_errprintf(handle->m_lasterr, 0, "invalid ELF version");
 	}
 
-	if (!handle->elf)
+	if(!handle->elf)
 	{
 		handle->program_fd = open(handle->m_filepath, O_RDONLY, 0);
 		if(handle->program_fd < 0)
@@ -739,7 +731,8 @@ static int32_t load_bpf_file(struct bpf_engine *handle)
 			{
 				if(strcmp(osname.release, data->d_buf))
 				{
-					snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "BPF probe is compiled for %s, but running version is %s",
+					snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE,
+						 "BPF probe is compiled for %s, but running version is %s",
 						 (char *)data->d_buf, osname.release);
 					goto end;
 				}
@@ -781,7 +774,8 @@ static int32_t load_bpf_file(struct bpf_engine *handle)
 
 		if(maps_shndx)
 		{
-			if(load_elf_maps_section(handle, maps, maps_shndx, handle->elf, symbols, strtabidx, &nr_maps) != SCAP_SUCCESS)
+			if(load_elf_maps_section(handle, maps, maps_shndx, handle->elf, symbols, strtabidx, &nr_maps) !=
+			   SCAP_SUCCESS)
 			{
 				goto end;
 			}
@@ -803,7 +797,8 @@ static int32_t load_bpf_file(struct bpf_engine *handle)
 			{
 				struct bpf_insn *insns;
 
-				if(get_elf_section(handle->elf, shdr.sh_info, &handle->ehdr, &shname_prog, &shdr_prog, &data_prog) != SCAP_SUCCESS)
+				if(get_elf_section(handle->elf, shdr.sh_info, &handle->ehdr, &shname_prog, &shdr_prog,
+						   &data_prog) != SCAP_SUCCESS)
 				{
 					continue;
 				}
@@ -851,9 +846,9 @@ static int load_all_progs(struct bpf_engine *handle)
 static int allocate_scap_stats_v2(struct bpf_engine *handle)
 {
 	int nprogs_attached = 0;
-	for(int j=0; j < BPF_PROG_ATTACHED_MAX; j++)
+	for(int j = 0; j < BPF_PROG_ATTACHED_MAX; j++)
 	{
-		if (handle->m_attached_progs[j].fd != -1)
+		if(handle->m_attached_progs[j].fd != -1)
 		{
 			nprogs_attached++;
 		}
@@ -885,15 +880,20 @@ static void *perf_event_mmap(struct bpf_engine *handle, int fd, unsigned long *s
 	void *tmp = mmap(NULL, total_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 	if(tmp == MAP_FAILED)
 	{
-		scap_errprintf(handle->m_lasterr, errno, "mmap (1) failed (If you get memory allocation errors try to reduce the buffer dimension)");
+		scap_errprintf(
+			handle->m_lasterr, errno,
+			"mmap (1) failed (If you get memory allocation errors try to reduce the buffer dimension)");
 		return MAP_FAILED;
 	}
 
 	// Map the second copy to allow us to handle the wrap case normally
-	void *p1 = mmap(tmp + ring_size, ring_size + header_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, fd, 0);
+	void *p1 =
+		mmap(tmp + ring_size, ring_size + header_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, fd, 0);
 	if(p1 == MAP_FAILED)
 	{
-		scap_errprintf(handle->m_lasterr, errno, "mmap (2) failed (If you get memory allocation errors try to reduce the buffer dimension)");
+		scap_errprintf(
+			handle->m_lasterr, errno,
+			"mmap (2) failed (If you get memory allocation errors try to reduce the buffer dimension)");
 		munmap(tmp, total_size);
 		return MAP_FAILED;
 	}
@@ -904,7 +904,9 @@ static void *perf_event_mmap(struct bpf_engine *handle, int fd, unsigned long *s
 	void *p2 = mmap(tmp, ring_size + header_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, fd, 0);
 	if(p2 == MAP_FAILED)
 	{
-		scap_errprintf(handle->m_lasterr, errno, "mmap (3) failed (If you get memory allocation errors try to reduce the buffer dimension)");
+		scap_errprintf(
+			handle->m_lasterr, errno,
+			"mmap (3) failed (If you get memory allocation errors try to reduce the buffer dimension)");
 		munmap(tmp, total_size);
 		return MAP_FAILED;
 	}
@@ -936,9 +938,11 @@ static int32_t populate_syscall_table_map(struct bpf_engine *handle)
 static int32_t set_single_syscall_of_interest(struct bpf_engine *handle, int syscall_id, bool interesting)
 {
 	int ret = 0;
-	if((ret = bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_INTERESTING_SYSCALLS_TABLE], &syscall_id, &interesting, BPF_ANY)) != 0)
+	if((ret = bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_INTERESTING_SYSCALLS_TABLE], &syscall_id, &interesting,
+				      BPF_ANY)) != 0)
 	{
-		return scap_errprintf(handle->m_lasterr, -ret, "SCAP_INTERESTING_SYSCALLS_TABLE unable to update syscall: %d", syscall_id);
+		return scap_errprintf(handle->m_lasterr, -ret,
+				      "SCAP_INTERESTING_SYSCALLS_TABLE unable to update syscall: %d", syscall_id);
 	}
 	return SCAP_SUCCESS;
 }
@@ -983,10 +987,10 @@ static int32_t populate_fillers_table_map(struct bpf_engine *handle)
 	return bpf_map_freeze(handle->m_bpf_map_fds[SCAP_FILLERS_TABLE]);
 }
 
-static int enforce_sc_set(struct bpf_engine* handle)
+static int enforce_sc_set(struct bpf_engine *handle)
 {
 	/* handle->capturing == false means that we want to disable the capture */
-	bool* sc_set = handle->curr_sc_set.ppm_sc;
+	bool *sc_set = handle->curr_sc_set.ppm_sc;
 	bool empty_sc_set[PPM_SC_MAX] = {0};
 	if(!handle->capturing)
 	{
@@ -1026,16 +1030,12 @@ static int enforce_sc_set(struct bpf_engine* handle)
 		}
 	}
 
-	if(sc_set[PPM_SC_FORK] ||
-	   sc_set[PPM_SC_VFORK] ||
-	   sc_set[PPM_SC_CLONE] ||
-	   sc_set[PPM_SC_CLONE3])
+	if(sc_set[PPM_SC_FORK] || sc_set[PPM_SC_VFORK] || sc_set[PPM_SC_CLONE] || sc_set[PPM_SC_CLONE3])
 	{
 		sched_prog_fork_missing_child = true;
 	}
 
-	if(sc_set[PPM_SC_EXECVE] ||
-	   sc_set[PPM_SC_EXECVEAT])
+	if(sc_set[PPM_SC_EXECVE] || sc_set[PPM_SC_EXECVEAT])
 	{
 		sched_prog_exec = true;
 	}
@@ -1052,17 +1052,23 @@ static int enforce_sc_set(struct bpf_engine* handle)
 		detach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_SYS_EXIT]));
 
 	if(sched_prog_fork_move_args)
-		ret = ret ?: attach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_SCHED_PROC_FORK_MOVE_ARGS]), handle->m_lasterr);
+		ret = ret
+			      ?: attach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_SCHED_PROC_FORK_MOVE_ARGS]),
+						 handle->m_lasterr);
 	else
 		detach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_SCHED_PROC_FORK_MOVE_ARGS]));
 
 	if(sched_prog_fork_missing_child)
-		ret = ret ?: attach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_SCHED_PROC_FORK_MISSING_CHILD]), handle->m_lasterr);
+		ret = ret
+			      ?: attach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_SCHED_PROC_FORK_MISSING_CHILD]),
+						 handle->m_lasterr);
 	else
 		detach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_SCHED_PROC_FORK_MISSING_CHILD]));
 
 	if(sched_prog_exec)
-		ret = ret ?: attach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_SCHED_PROC_EXEC_MISSING_EXIT]), handle->m_lasterr);
+		ret = ret
+			      ?: attach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_SCHED_PROC_EXEC_MISSING_EXIT]),
+						 handle->m_lasterr);
 	else
 		detach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_SCHED_PROC_EXEC_MISSING_EXIT]));
 
@@ -1082,12 +1088,14 @@ static int enforce_sc_set(struct bpf_engine* handle)
 		detach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_PAGE_FAULT_USER]));
 
 	if(sc_set[PPM_SC_PAGE_FAULT_KERNEL])
-		ret = ret?: attach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_PAGE_FAULT_KERNEL]), handle->m_lasterr);
+		ret = ret
+			      ?: attach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_PAGE_FAULT_KERNEL]),
+						 handle->m_lasterr);
 	else
 		detach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_PAGE_FAULT_KERNEL]));
 
 	if(sc_set[PPM_SC_SIGNAL_DELIVER])
-		ret = ret?: attach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_SIGNAL_DELIVER]), handle->m_lasterr);
+		ret = ret ?: attach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_SIGNAL_DELIVER]), handle->m_lasterr);
 	else
 		detach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_SIGNAL_DELIVER]));
 
@@ -1096,14 +1104,14 @@ static int enforce_sc_set(struct bpf_engine* handle)
 
 int32_t scap_bpf_start_capture(struct scap_engine_handle engine)
 {
-	struct bpf_engine* handle = engine.m_handle;
+	struct bpf_engine *handle = engine.m_handle;
 	handle->capturing = true;
 	return enforce_sc_set(handle);
 }
 
 int32_t scap_bpf_stop_capture(struct scap_engine_handle engine)
 {
-	struct bpf_engine* handle = engine.m_handle;
+	struct bpf_engine *handle = engine.m_handle;
 	handle->capturing = false;
 	return enforce_sc_set(handle);
 }
@@ -1120,20 +1128,23 @@ static int32_t calibrate_socket_file_ops(struct scap_engine_handle engine)
 	engine.m_handle->curr_sc_set.ppm_sc[PPM_SC_SOCKET] = 1;
 	if(scap_bpf_start_capture(engine) != SCAP_SUCCESS)
 	{
-		return scap_errprintf(engine.m_handle->m_lasterr, errno, "unable to set the socket syscall for the calibration");
+		return scap_errprintf(engine.m_handle->m_lasterr, errno,
+				      "unable to set the socket syscall for the calibration");
 	}
 
 	int fd = socket(AF_INET, SOCK_DGRAM, 0);
 	if(fd == -1)
 	{
-		return scap_errprintf(engine.m_handle->m_lasterr, errno, "unable to create a socket for the calibration");
+		return scap_errprintf(engine.m_handle->m_lasterr, errno,
+				      "unable to create a socket for the calibration");
 	}
 	close(fd);
 
 	/* We need to stop the capture */
 	if(scap_bpf_stop_capture(engine) != SCAP_SUCCESS)
 	{
-		return scap_errprintf(engine.m_handle->m_lasterr, errno, "unable to stop the capture after the calibration");
+		return scap_errprintf(engine.m_handle->m_lasterr, errno,
+				      "unable to stop the capture after the calibration");
 	}
 
 	return SCAP_SUCCESS;
@@ -1334,7 +1345,6 @@ int32_t scap_bpf_close(struct scap_engine_handle engine)
 	}
 	handle->m_tail_called_cnt = 0;
 
-
 	for(int j = 0; j < BPF_PROG_ATTACHED_MAX; j++)
 	{
 		detach_bpf_prog(&handle->m_attached_progs[j]);
@@ -1343,17 +1353,17 @@ int32_t scap_bpf_close(struct scap_engine_handle engine)
 
 	handle->m_bpf_prog_array_map_idx = -1;
 
-	if (handle->elf)
+	if(handle->elf)
 	{
 		elf_end(handle->elf);
 		handle->elf = NULL;
 	}
-	if (handle->m_stats)
+	if(handle->m_stats)
 	{
 		free(handle->m_stats);
 		handle->m_stats = NULL;
 	}
-	if (handle->program_fd > 0)
+	if(handle->program_fd > 0)
 	{
 		close(handle->program_fd);
 		handle->program_fd = -1;
@@ -1458,10 +1468,7 @@ static int32_t set_default_settings(struct bpf_engine *handle)
 	return SCAP_SUCCESS;
 }
 
-int32_t scap_bpf_load(
-	struct bpf_engine *handle,
-	const char *bpf_probe,
-	scap_open_args *oargs)
+int32_t scap_bpf_load(struct bpf_engine *handle, const char *bpf_probe, scap_open_args *oargs)
 {
 	int online_cpu;
 	int j;
@@ -1626,7 +1633,7 @@ int32_t scap_bpf_load(
 	return SCAP_SUCCESS;
 }
 
-int32_t scap_bpf_get_stats(struct scap_engine_handle engine, OUT scap_stats* stats)
+int32_t scap_bpf_get_stats(struct scap_engine_handle engine, OUT scap_stats *stats)
 {
 	struct bpf_engine *handle = engine.m_handle;
 	int j;
@@ -1657,16 +1664,14 @@ int32_t scap_bpf_get_stats(struct scap_engine_handle engine, OUT scap_stats* sta
 		stats->n_drops_scratch_map += v.n_drops_scratch_map;
 		stats->n_drops_pf += v.n_drops_pf;
 		stats->n_drops_bug += v.n_drops_bug;
-		stats->n_drops += v.n_drops_buffer +
-				  v.n_drops_scratch_map +
-				  v.n_drops_pf +
-				  v.n_drops_bug;
+		stats->n_drops += v.n_drops_buffer + v.n_drops_scratch_map + v.n_drops_pf + v.n_drops_bug;
 	}
 
 	return SCAP_SUCCESS;
 }
 
-const struct scap_stats_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engine, uint32_t flags, OUT uint32_t* nstats, OUT int32_t* rc)
+const struct scap_stats_v2 *scap_bpf_get_stats_v2(struct scap_engine_handle engine, uint32_t flags,
+						  OUT uint32_t *nstats, OUT int32_t *rc)
 {
 	struct bpf_engine *handle = engine.m_handle;
 	int ret;
@@ -1674,14 +1679,14 @@ const struct scap_stats_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engi
 	int offset = 0; // offset in stats buffer
 	*nstats = 0;
 	uint32_t nstats_allocated = handle->m_nstats;
-	scap_stats_v2* stats = handle->m_stats;
-	if (!stats)
+	scap_stats_v2 *stats = handle->m_stats;
+	if(!stats)
 	{
 		*rc = SCAP_FAILURE;
 		return NULL;
 	}
 
-	if ((flags & PPM_SCAP_STATS_KERNEL_COUNTERS) && (BPF_MAX_KERNEL_COUNTERS_STATS <= nstats_allocated))
+	if((flags & PPM_SCAP_STATS_KERNEL_COUNTERS) && (BPF_MAX_KERNEL_COUNTERS_STATS <= nstats_allocated))
 	{
 		/* KERNEL SIDE STATS COUNTERS */
 		for(int stat = 0; stat < BPF_MAX_KERNEL_COUNTERS_STATS; stat++)
@@ -1712,15 +1717,14 @@ const struct scap_stats_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engi
 			stats[BPF_N_DROPS_BUFFER_OPEN_EXIT].value.u64 += v.n_drops_buffer_open_exit;
 			stats[BPF_N_DROPS_BUFFER_DIR_FILE_ENTER].value.u64 += v.n_drops_buffer_dir_file_enter;
 			stats[BPF_N_DROPS_BUFFER_DIR_FILE_EXIT].value.u64 += v.n_drops_buffer_dir_file_exit;
-			stats[BPF_N_DROPS_BUFFER_OTHER_INTEREST_ENTER].value.u64 += v.n_drops_buffer_other_interest_enter;
+			stats[BPF_N_DROPS_BUFFER_OTHER_INTEREST_ENTER].value.u64 +=
+				v.n_drops_buffer_other_interest_enter;
 			stats[BPF_N_DROPS_BUFFER_OTHER_INTEREST_EXIT].value.u64 += v.n_drops_buffer_other_interest_exit;
 			stats[BPF_N_DROPS_SCRATCH_MAP].value.u64 += v.n_drops_scratch_map;
 			stats[BPF_N_DROPS_PAGE_FAULTS].value.u64 += v.n_drops_pf;
 			stats[BPF_N_DROPS_BUG].value.u64 += v.n_drops_bug;
-			stats[BPF_N_DROPS].value.u64 += v.n_drops_buffer + \
-				v.n_drops_scratch_map + \
-				v.n_drops_pf + \
-				v.n_drops_bug;
+			stats[BPF_N_DROPS].value.u64 +=
+				v.n_drops_buffer + v.n_drops_scratch_map + v.n_drops_pf + v.n_drops_bug;
 		}
 		offset = BPF_MAX_KERNEL_COUNTERS_STATS;
 	}
@@ -1732,16 +1736,16 @@ const struct scap_stats_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engi
 	 * Hopefully someone upstreams such capabilities to libbpf one day :)
 	 * Meanwhile, we can simulate perf comparisons between future LSM hooks and sys enter and exit tracepoints
 	 * via leveraging syscall selection mechanisms `handle->curr_sc_set`.
-	 * 
+	 *
 	 * Please note that libbpf stats are available only on kernels >= 5.1, they could be backported but
 	 * it's possible that in some of our supported kernels they won't be available.
 	 */
-	if ((flags & PPM_SCAP_STATS_LIBBPF_STATS))
+	if((flags & PPM_SCAP_STATS_LIBBPF_STATS))
 	{
 		for(int bpf_prog = 0; bpf_prog < BPF_PROG_ATTACHED_MAX; bpf_prog++)
 		{
 			fd = handle->m_attached_progs[bpf_prog].fd;
-			if (fd < 0)
+			if(fd < 0)
 			{
 				// we loop through each possible prog, landing here means prog was not attached
 				continue;
@@ -1750,26 +1754,28 @@ const struct scap_stats_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engi
 			__u32 len = sizeof(info);
 			if((ret = bpf_obj_get_info_by_fd(fd, &info, &len)))
 			{
-				*rc = scap_errprintf(handle->m_lasterr, -ret, "Error getting bpf prog info for fd %d", fd);
+				*rc = scap_errprintf(handle->m_lasterr, -ret, "Error getting bpf prog info for fd %d",
+						     fd);
 				continue;
 			}
 
 			for(int stat = 0; stat < BPF_MAX_LIBBPF_STATS; stat++)
 			{
-				if (offset > nstats_allocated - 1)
+				if(offset > nstats_allocated - 1)
 				{
 					break;
 				}
 				stats[offset].type = STATS_VALUE_TYPE_U64;
 				stats[offset].flags = PPM_SCAP_STATS_LIBBPF_STATS;
-				/* The possibility to specify a name for a BPF program was introduced in kernel 4.15 
+				/* The possibility to specify a name for a BPF program was introduced in kernel 4.15
 				 * https://github.com/torvalds/linux/commit/cb4d2b3f03d8eed90be3a194e5b54b734ec4bbe9
 				 * So it's possible that in some of our supported kernels `info.name` will be "".
 				 */
 				if(strlen(info.name) == 0)
 				{
 					/* Fallback on the elf section name */
-					strlcpy(stats[offset].name, handle->m_attached_progs[bpf_prog].name, STATS_NAME_MAX);
+					strlcpy(stats[offset].name, handle->m_attached_progs[bpf_prog].name,
+						STATS_NAME_MAX);
 				}
 				else
 				{
@@ -1778,17 +1784,20 @@ const struct scap_stats_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engi
 				switch(stat)
 				{
 				case RUN_CNT:
-					strlcat(stats[offset].name, bpf_libbpf_stats_names[RUN_CNT], sizeof(stats[offset].name));
+					strlcat(stats[offset].name, bpf_libbpf_stats_names[RUN_CNT],
+						sizeof(stats[offset].name));
 					stats[offset].value.u64 = info.run_cnt;
 					break;
 				case RUN_TIME_NS:
-					strlcat(stats[offset].name, bpf_libbpf_stats_names[RUN_TIME_NS], sizeof(stats[offset].name));
+					strlcat(stats[offset].name, bpf_libbpf_stats_names[RUN_TIME_NS],
+						sizeof(stats[offset].name));
 					stats[offset].value.u64 = info.run_time_ns;
 					break;
 				case AVG_TIME_NS:
-					strlcat(stats[offset].name, bpf_libbpf_stats_names[AVG_TIME_NS], sizeof(stats[offset].name));
+					strlcat(stats[offset].name, bpf_libbpf_stats_names[AVG_TIME_NS],
+						sizeof(stats[offset].name));
 					stats[offset].value.u64 = 0;
-					if (info.run_cnt > 0)
+					if(info.run_cnt > 0)
 					{
 						stats[offset].value.u64 = info.run_time_ns / info.run_cnt;
 					}
@@ -1800,12 +1809,13 @@ const struct scap_stats_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engi
 			}
 		}
 	}
-	*nstats = offset; // return true number of stats that were available as libbpf metrics are a function of attached progs
+	*nstats = offset; // return true number of stats that were available as libbpf metrics are a function of
+			  // attached progs
 	*rc = SCAP_SUCCESS;
 	return stats;
 }
 
-int32_t scap_bpf_get_n_tracepoint_hit(struct scap_engine_handle engine, long* ret)
+int32_t scap_bpf_get_n_tracepoint_hit(struct scap_engine_handle engine, long *ret)
 {
 	struct bpf_engine *handle = engine.m_handle;
 	int j;
@@ -1825,14 +1835,14 @@ int32_t scap_bpf_get_n_tracepoint_hit(struct scap_engine_handle engine, long* re
 	return SCAP_SUCCESS;
 }
 
-static int32_t next(struct scap_engine_handle engine, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
+static int32_t next(struct scap_engine_handle engine, OUT scap_evt **pevent, OUT uint16_t *pcpuid)
 {
 	return ringbuffer_next(&engine.m_handle->m_dev_set, pevent, pcpuid);
 }
 
-static int32_t unsupported_config(struct scap_engine_handle engine, const char* msg)
+static int32_t unsupported_config(struct scap_engine_handle engine, const char *msg)
 {
-	struct bpf_engine* handle = engine.m_handle;
+	struct bpf_engine *handle = engine.m_handle;
 
 	strlcpy(handle->m_lasterr, msg, SCAP_LASTERR_SIZE);
 	return SCAP_FAILURE;
@@ -1861,7 +1871,7 @@ static int32_t scap_bpf_handle_dropfailed(struct scap_engine_handle engine, bool
 
 static int32_t scap_bpf_handle_sc(struct scap_engine_handle engine, uint32_t op, uint32_t sc)
 {
-	struct bpf_engine* handle = engine.m_handle;
+	struct bpf_engine *handle = engine.m_handle;
 	handle->curr_sc_set.ppm_sc[sc] = op == SCAP_PPM_SC_MASK_SET;
 	/* We update the system state only if the capture is started
 	 * otherwise there is the risk to enable again tracepoints
@@ -1873,7 +1883,8 @@ static int32_t scap_bpf_handle_sc(struct scap_engine_handle engine, uint32_t op,
 	return SCAP_SUCCESS;
 }
 
-static int32_t configure(struct scap_engine_handle engine, enum scap_setting setting, unsigned long arg1, unsigned long arg2)
+static int32_t configure(struct scap_engine_handle engine, enum scap_setting setting, unsigned long arg1,
+			 unsigned long arg2)
 {
 	switch(setting)
 	{
@@ -1920,7 +1931,7 @@ static int32_t configure(struct scap_engine_handle engine, enum scap_setting set
 	}
 }
 
-static int32_t init(scap_t* handle, scap_open_args *oargs)
+static int32_t init(scap_t *handle, scap_open_args *oargs)
 {
 	int32_t rc = 0;
 	char bpf_probe_buf[SCAP_MAX_PATH_SIZE] = {0};
@@ -1986,7 +1997,7 @@ static int32_t init(scap_t* handle, scap_open_args *oargs)
 		{
 			return rc;
 		}
-	}	
+	}
 
 	/* Store interesting sc codes */
 	memcpy(&engine.m_handle->curr_sc_set, &oargs->ppm_sc_of_interest, sizeof(interesting_ppm_sc_set));
@@ -1994,10 +2005,7 @@ static int32_t init(scap_t* handle, scap_open_args *oargs)
 	return SCAP_SUCCESS;
 }
 
-static uint32_t get_n_devs(struct scap_engine_handle engine)
-{
-	return engine.m_handle->m_dev_set.m_ndevs;
-}
+static uint32_t get_n_devs(struct scap_engine_handle engine) { return engine.m_handle->m_dev_set.m_ndevs; }
 
 static uint64_t get_max_buf_used(struct scap_engine_handle engine)
 {
@@ -2014,15 +2022,9 @@ static uint64_t get_max_buf_used(struct scap_engine_handle engine)
 	return max;
 }
 
-uint64_t scap_bpf_get_api_version(struct scap_engine_handle engine)
-{
-	return engine.m_handle->m_api_version;
-}
+uint64_t scap_bpf_get_api_version(struct scap_engine_handle engine) { return engine.m_handle->m_api_version; }
 
-uint64_t scap_bpf_get_schema_version(struct scap_engine_handle engine)
-{
-	return engine.m_handle->m_schema_version;
-}
+uint64_t scap_bpf_get_schema_version(struct scap_engine_handle engine) { return engine.m_handle->m_schema_version; }
 
 const struct scap_vtable scap_bpf_engine = {
 	.name = BPF_ENGINE,

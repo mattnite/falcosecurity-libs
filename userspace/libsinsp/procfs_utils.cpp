@@ -56,7 +56,7 @@ libsinsp::procfs_utils::ns_helper::ns_helper(const std::string& host_root):
 	struct stat rootlink;
 	if(-1 == stat((m_host_root + "/proc/1/root").c_str(), &rootlink))
 	{
-		g_logger.format(sinsp_logger::SEV_WARNING,
+		g_logger.format(FALCO_LOG_SEV_WARNING,
 				"Cannot read host init process proc root: %d", errno);
 		m_cannot_read_host_init_ns_mnt = true;
 	}
@@ -76,7 +76,7 @@ bool libsinsp::procfs_utils::ns_helper::in_own_ns_mnt(int64_t pid) const
 	struct stat rootlink;
 	if(-1 == stat(get_pid_root(pid).c_str(), &rootlink))
 	{
-		g_logger.format(sinsp_logger::SEV_DEBUG,
+		g_logger.format(FALCO_LOG_SEV_DEBUG,
 				"Cannot read process proc root");
 		return false;
 	}

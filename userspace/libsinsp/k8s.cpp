@@ -50,9 +50,9 @@ k8s::k8s(const std::string& uri, bool is_captured,
 			   nullptr : new k8s_net(*this, m_state, uri, ssl, bt, event_filter, block, node_selector))
 #endif
 {
-	g_logger.log(std::string("Creating K8s object for [" +
-							 (uri.empty() ? std::string("capture replay") : uri) + ']'),
-							 sinsp_logger::SEV_DEBUG);
+	g_logger.log(FALCO_LOG_SEV_DEBUG,
+							 std::string("Creating K8s object for [" +
+							 (uri.empty() ? std::string("capture replay") : uri) + ']'));
 	if(m_components.empty())
 	{
 		if(events_only)
@@ -133,11 +133,11 @@ void k8s::check_components()
 						std::string handler_name = handler->name();
 						if(!k8s_component::is_critical(handler_name))
 						{
-							g_logger.log("K8s: removing " + handler_name + " due to HTTP error " +
+							g_logger.log(FALCO_LOG_SEV_WARNING,
+										 "K8s: removing " + handler_name + " due to HTTP error " +
 										 std::to_string(handler_error->code()) +
 										 ", reason: " + handler_error->reason() +
-										 ", message: " + handler_error->message(),
-										 sinsp_logger::SEV_WARNING);
+										 ", message: " + handler_error->message());
 							m_components.erase(it++);
 							continue;
 						}
@@ -207,19 +207,19 @@ void k8s::simulate_watch_event(const std::string& json, int version)
 			else if(type == "EventList")             { component_type = k8s_component::K8S_EVENTS;                 }
 			else
 			{
-				g_logger.log("Unrecognized component type: " + type, sinsp_logger::SEV_ERROR);
+				g_logger.log(FALCO_LOG_SEV_ERROR, "Unrecognized component type: " + type);
 				return;
 			}
 		}
 		else
 		{
-			g_logger.log("Component type not found in JSON", sinsp_logger::SEV_ERROR);
+			g_logger.log(FALCO_LOG_SEV_ERROR, "Component type not found in JSON");
 			return;
 		}
 	}
 	else
 	{
-		g_logger.log("Error parsing JSON", sinsp_logger::SEV_ERROR);
+		g_logger.log(FALCO_LOG_SEV_ERROR, "Error parsing JSON");
 		return;
 	}
 
@@ -230,7 +230,7 @@ void k8s::simulate_watch_event(const std::string& json, int version)
 	static bool version_logged = false;
 	if(!version_logged)
 	{
-		g_logger.log("K8s capture version: " + std::to_string(version), sinsp_logger::SEV_DEBUG);
+		g_logger.log(FALCO_LOG_SEV_DEBUG, "K8s capture version: " + std::to_string(version));
 		version_logged = true;
 	}
 	switch(version)

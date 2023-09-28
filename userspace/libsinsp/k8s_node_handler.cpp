@@ -109,8 +109,8 @@ bool k8s_node_handler::handle_component(const Json::Value& json, const msg_data*
 				}
 				else
 				{
-					g_logger.log("K8s Node handler: Can not obtain IP address(es) for node" + data->m_name +
-								 '[' + data->m_uid + ']', sinsp_logger::SEV_ERROR);
+					g_logger.log(FALCO_LOG_SEV_ERROR, "K8s Node handler: Can not obtain IP address(es) for node" + data->m_name +
+								 '[' + data->m_uid + ']');
 				}
 				k8s_pair_list entries = k8s_component::extract_object(json, "labels");
 				if(entries.size() > 0)
@@ -128,8 +128,8 @@ bool k8s_node_handler::handle_component(const Json::Value& json, const msg_data*
 			}
 			else if(data->m_reason != k8s_component::COMPONENT_ERROR)
 			{
-				g_logger.log(std::string("Unsupported K8S " + name() + " event reason: ") +
-							 std::to_string(data->m_reason), sinsp_logger::SEV_ERROR);
+				g_logger.log(FALCO_LOG_SEV_ERROR, std::string("Unsupported K8S " + name() + " event reason: ") +
+							 std::to_string(data->m_reason));
 				return false;
 			}
 		}

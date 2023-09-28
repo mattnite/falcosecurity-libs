@@ -154,16 +154,16 @@ void k8s_service_handler::extract_services_data(const Json::Value& json, k8s_ser
 								const k8s_container::port* container_port = container.get_port(port_name);
 								if(container_port)
 								{
-									g_logger.log("K8s: found port for service [" + service.get_name() + "], "
-												 "container [" + container.get_name() + ']',
-												 sinsp_logger::SEV_DEBUG);
+									g_logger.log(FALCO_LOG_SEV_DEBUG,
+												 "K8s: found port for service [" + service.get_name() + "], "
+												 "container [" + container.get_name() + ']');
 									p.m_target_port = container_port->get_port();
 									break;
 								}
 								else
 								{
-									g_logger.log("K8s: error while trying to determine port for service [" + service.get_name() + "]: "
-												"no ports found for container [" + container.get_name() + "]", sinsp_logger::SEV_ERROR);
+									g_logger.log(FALCO_LOG_SEV_ERROR, "K8s: error while trying to determine port for service [" + service.get_name() + "]: "
+												"no ports found for container [" + container.get_name() + "]");
 									p.m_target_port = 0;
 								}
 							}
@@ -171,7 +171,7 @@ void k8s_service_handler::extract_services_data(const Json::Value& json, k8s_ser
 					}
 					else
 					{
-						g_logger.log("Port of unknown or unsupported type.", sinsp_logger::SEV_ERROR);
+						g_logger.log(FALCO_LOG_SEV_ERROR, "Port of unknown or unsupported type.");
 						p.m_target_port = 0;
 					}
 				}
@@ -196,8 +196,8 @@ void k8s_service_handler::extract_services_data(const Json::Value& json, k8s_ser
 	}
 	else
 	{
-		g_logger.log("Error while extracting data for service [" + service.get_name() + "]: "
-					" JSON is null.", sinsp_logger::SEV_ERROR);
+		g_logger.log(FALCO_LOG_SEV_ERROR, "Error while extracting data for service [" + service.get_name() + "]: "
+					" JSON is null.");
 	}
 }
 
@@ -235,8 +235,8 @@ bool k8s_service_handler::handle_component(const Json::Value& json, const msg_da
 			}
 			else if(data->m_reason != k8s_component::COMPONENT_ERROR)
 			{
-				g_logger.log(std::string("Unsupported K8S " + name() + " event reason: ") +
-							 std::to_string(data->m_reason), sinsp_logger::SEV_ERROR);
+				g_logger.log(FALCO_LOG_SEV_ERROR, std::string("Unsupported K8S " + name() + " event reason: ") +
+							 std::to_string(data->m_reason));
 				return false;
 			}
 		}

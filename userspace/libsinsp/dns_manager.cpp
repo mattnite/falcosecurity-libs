@@ -312,7 +312,7 @@ public:
 	      m_last_resolve_ts(ts)
 	{
 		resolve(name, ts, 1);
-		G_LOG_FORMAT(sinsp_logger::SEV_DEBUG,
+		G_LOG_FORMAT(FALCO_LOG_SEV_DEBUG,
 		             "dns_info: create new %s, ipv4: [%s], ipv6: [%s]",
 		             name.c_str(),
 		             m_v4_addrs->to_string().c_str(),
@@ -351,7 +351,7 @@ public:
 			}
 
 			G_LOG_FORMAT(
-			    sinsp_logger::SEV_DEBUG,
+			    FALCO_LOG_SEV_DEBUG,
 			    "dns_info resolve: name: %s, updated: %s, next refresh in: %llu sec, ipv4: [%s], "
 			    "ipv6: [%s]",
 			    name.c_str(),
@@ -360,6 +360,63 @@ public:
 			        ONE_SECOND_IN_NS,
 			    m_v4_addrs->to_string().c_str(),
 			    m_v6_addrs->to_string().c_str());
+		}
+	}
+
+	bool is_expired(uint64_t erase_timeout, uint64_t ts) const
+	{
+		return (ts > m_last_used_ts) && (ts - m_last_used_ts) > erase_timeout;
+	}
+
+	bool has_address(int af, void* addr, uint64_t ts) const
+	{
+		auto ret =
+		    (af == AF_INET) ? m_v4_addrs->has_address(addr, ts) : m_v6_addrs->has_address(addr, ts);
+
+		if (ret)
+		{
+			m_last_used_ts = ts;
+		}
+		return ret;
+	}
+
+	void copy_addrs( const addr_consumer_t<AF_INET>& consumer ) const
+	{
+		m_v4_addrs->copy(consumer);
+	}
+
+	void copy_addrs( const addr_consumer_t<AF_INET6>& consumer ) const
+	{
+		m_v6_addrs->copy(consumer);
+	}
+
+private:
+	bool resolve(const std::string& name, uint64_t ts, int n_iter)
+	{
+		addrinfo hints{}, *result, *rp;
+		memset(&hints, 0, sizeof(struct addrinfo));
+
+		// Allow IPv4 or IPv6, all socket types, all protocols
+		hints.ai_family = AF_UNSPEC;
+		int s = getaddrinfo(name.c_str(), nullptr, &hints, &result);
+
+		if (s)
+		{
+			G_LOG_FORMAT(FALCO_LOG_SEV_WARNING,
+			             "dns_info: unable to resolve name='%s', error=%d",
+			             name.c_str(),
+			             s);
+			return false;
+		}
+
+		if (result == nullptr)
+		{
+			G_LOG_FORMAT(FALCO_LOG_SEV_DEBUG,
+			             "dns_info: empty resolve result for name='%s'",
+			             name.c_str());
+			m_v4_addrs->clear();
+			m_v6_addrs->clear();
+			return false;
 		}
 	}
 

@@ -390,7 +390,7 @@ public:
 	  \brief Specify the minimum severity of the messages that go into the logs
 	   emitted by the library.
 	*/
-	void set_min_log_severity(sinsp_logger::severity sev);
+	void set_min_log_severity(falco_log_severity sev);
 
 	/*!
 	 * \brief set whether the library will automatically purge the threadtable

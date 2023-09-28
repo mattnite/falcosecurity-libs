@@ -84,7 +84,7 @@ std::string sinsp_ssl::memorize_file(const std::string& disk_file)
 			std::ostringstream os;
 			os << "Error occurred while trying to determine the real path of memory file [" << fd_path << "]: "
 				<< strerror(errno) << " (disk file [" << disk_file << "] will be used).";
-			g_logger.log(os.str(), sinsp_logger::SEV_WARNING);
+			g_logger.log(FALCO_LOG_SEV_WARNING, os.str());
 			return disk_file;
 		}
 	}
@@ -92,7 +92,7 @@ std::string sinsp_ssl::memorize_file(const std::string& disk_file)
 	{
 		std::ostringstream os;
 		os << "Memory file creation error: " << strerror(errno) << " (disk file [" << disk_file << "] will be used).";
-		g_logger.log(os.str(), sinsp_logger::SEV_WARNING);
+		g_logger.log(FALCO_LOG_SEV_WARNING, os.str());
 		return disk_file;
 	}
 	return mem_file;
@@ -104,7 +104,7 @@ void sinsp_ssl::unmemorize_file(const std::string& mem_file)
 	{
 		std::ostringstream os;
 		os << "Memory file [" << mem_file << "] unlink error: " << strerror(errno);
-		g_logger.log(os.str(), sinsp_logger::SEV_WARNING);
+		g_logger.log(FALCO_LOG_SEV_WARNING, os.str());
 	}
 }
 

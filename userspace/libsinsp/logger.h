@@ -18,6 +18,7 @@ limitations under the License.
 #pragma once
 
 #include "sinsp_public.h"
+#include "falco/log.h"
 
 #include <atomic>
 #include <string>
@@ -33,21 +34,10 @@ limitations under the License.
 class SINSP_PUBLIC sinsp_logger
 {
 public:
-	enum severity
-	{
-		SEV_FATAL = 1,
-		SEV_CRITICAL = 2,
-		SEV_ERROR = 3,
-		SEV_WARNING = 4,
-		SEV_NOTICE = 5,
-		SEV_INFO = 6,
-		SEV_DEBUG = 7,
-		SEV_TRACE = 8,
-	};
-	const static severity SEV_MIN = SEV_FATAL;
-	const static severity SEV_MAX = SEV_TRACE;
+	const static falco_log_severity SEV_MIN = FALCO_LOG_SEV_FATAL;
+	const static falco_log_severity SEV_MAX = FALCO_LOG_SEV_TRACE;
 
-	using callback_t = void (*)(std::string&& str, severity sev);
+	using callback_t = void (*)(falco_log_severity sev, std::string&& str);
 
 	const static uint32_t OT_NONE;
 	const static uint32_t OT_STDOUT;
@@ -103,13 +93,13 @@ public:
 	/**
 	 * Set the minimum severity of logs that this sinsp_logger will emit.
 	 */
-	void set_severity(severity sev);
+	void set_severity(falco_log_severity sev);
 
 	/**
 	 * Returns the minimum severity of logs that this sinsp_logger
 	 * will emit.
 	 */
-	severity get_severity() const;
+	falco_log_severity get_severity() const;
 
 	/**
 	 * Returns true if logs generated at the given severity will be written
@@ -117,7 +107,7 @@ public:
 	 *
 	 * Note that this is intentionally inline.
 	 */
-	bool is_enabled(const severity sev) const { return (sev <= m_sev); }
+	bool is_enabled(const falco_log_severity sev) const { return (sev <= m_sev); }
 
 	/**
 	 * Returns true if the logger has at least one output configured.
@@ -130,13 +120,13 @@ public:
 	 * Emit the given msg to the configured log sink if the given sev
 	 * is greater than or equal to the minimum configured logging severity.
 	 */
-	void log(std::string msg, severity sev = SEV_INFO);
+	void log(falco_log_severity sev, std::string msg);
 
 	/**
 	 * Write the given printf-style log message of the given severity
 	 * with the given format to the configured log sink.
 	 */
-	void format(severity sev, const char* fmt, ...);
+	void format(falco_log_severity sev, const char* fmt, ...);
 
 	/**
 	 * Write the given printf-style log message of the given severity
@@ -145,7 +135,7 @@ public:
 	 * @returns a pointer to static thread-local storage containing the
 	 *          formatted log message.
 	 */
-	const char* format_and_return(severity sev, const char* fmt, ...);
+	const char* format_and_return(falco_log_severity sev, const char* fmt, ...);
 
 	/**
 	 * Write the given printf-style log message of SEV_INFO severity
@@ -157,7 +147,7 @@ public:
 	 *  Returns the length of the severity string on success
 	 *  and 0 in case of errors
 	 */
-	static size_t decode_severity(const std::string &s, severity& sev);
+	static size_t decode_severity(const std::string &s, falco_log_severity& sev);
 
 private:
 	/** Returns true if the callback log sync is enabled, false otherwise. */
@@ -165,11 +155,11 @@ private:
 
 
 	/** Returns a string containing encoded severity, for OT_ENCODE_SEV. */
-	static const char* encode_severity(severity sev);
+	static const char* encode_severity(falco_log_severity sev);
 	std::atomic<FILE*> m_file;
 	std::atomic<callback_t> m_callback;
 	std::atomic<uint32_t> m_flags;
-	std::atomic<severity> m_sev;
+	std::atomic<falco_log_severity> m_sev;
 };
 
 using sinsp_logger_callback = sinsp_logger::callback_t;
@@ -191,28 +181,28 @@ extern sinsp_logger g_logger;
 	{                                                                      \
 		if(g_logger.is_enabled(severity))                              \
 		{                                                              \
-			g_logger.log((msg), (severity));                       \
+			g_logger.log((severity), (msg));                       \
 		}                                                              \
 	}                                                                      \
 	while(false)
 
-#define SINSP_FATAL(...)    SINSP_LOG_(sinsp_logger::SEV_FATAL,    ##__VA_ARGS__)
-#define SINSP_CRITICAL(...) SINSP_LOG_(sinsp_logger::SEV_CRITICAL, ##__VA_ARGS__)
-#define SINSP_ERROR(...)    SINSP_LOG_(sinsp_logger::SEV_ERROR,    ##__VA_ARGS__)
-#define SINSP_WARNING(...)  SINSP_LOG_(sinsp_logger::SEV_WARNING,  ##__VA_ARGS__)
-#define SINSP_NOTICE(...)   SINSP_LOG_(sinsp_logger::SEV_NOTICE,   ##__VA_ARGS__)
-#define SINSP_INFO(...)     SINSP_LOG_(sinsp_logger::SEV_INFO,     ##__VA_ARGS__)
-#define SINSP_DEBUG(...)    SINSP_LOG_(sinsp_logger::SEV_DEBUG,    ##__VA_ARGS__)
-#define SINSP_TRACE(...)    SINSP_LOG_(sinsp_logger::SEV_TRACE,    ##__VA_ARGS__)
+#define SINSP_FATAL(...)    SINSP_LOG_(FALCO_LOG_SEV_FATAL,    ##__VA_ARGS__)
+#define SINSP_CRITICAL(...) SINSP_LOG_(FALCO_LOG_SEV_CRITICAL, ##__VA_ARGS__)
+#define SINSP_ERROR(...)    SINSP_LOG_(FALCO_LOG_SEV_ERROR,    ##__VA_ARGS__)
+#define SINSP_WARNING(...)  SINSP_LOG_(FALCO_LOG_SEV_WARNING,  ##__VA_ARGS__)
+#define SINSP_NOTICE(...)   SINSP_LOG_(FALCO_LOG_SEV_NOTICE,   ##__VA_ARGS__)
+#define SINSP_INFO(...)     SINSP_LOG_(FALCO_LOG_SEV_INFO,     ##__VA_ARGS__)
+#define SINSP_DEBUG(...)    SINSP_LOG_(FALCO_LOG_SEV_DEBUG,    ##__VA_ARGS__)
+#define SINSP_TRACE(...)    SINSP_LOG_(FALCO_LOG_SEV_TRACE,    ##__VA_ARGS__)
 
-#define SINSP_STR_FATAL(str)     SINSP_LOG_STR_(sinsp_logger::SEV_FATAL,   (str))
-#define SINSP_STR_CRITICAL(str)  SINSP_LOG_STR_(sinsp_logger::SEV_CRITICAL,(str))
-#define SINSP_STR_ERROR(str)     SINSP_LOG_STR_(sinsp_logger::SEV_ERROR,   (str))
-#define SINSP_STR_WARNING(str)   SINSP_LOG_STR_(sinsp_logger::SEV_WARNING, (str))
-#define SINSP_STR_NOTICE(str)    SINSP_LOG_STR_(sinsp_logger::SEV_NOTICE,  (str))
-#define SINSP_STR_INFO(str)      SINSP_LOG_STR_(sinsp_logger::SEV_INFO,    (str))
-#define SINSP_STR_DEBUG(str)     SINSP_LOG_STR_(sinsp_logger::SEV_DEBUG,   (str))
-#define SINSP_STR_TRACE(str)     SINSP_LOG_STR_(sinsp_logger::SEV_TRACE,   (str))
+#define SINSP_STR_FATAL(str)     SINSP_LOG_STR_(FALCO_LOG_SEV_FATAL,   (str))
+#define SINSP_STR_CRITICAL(str)  SINSP_LOG_STR_(FALCO_LOG_SEV_CRITICAL,(str))
+#define SINSP_STR_ERROR(str)     SINSP_LOG_STR_(FALCO_LOG_SEV_ERROR,   (str))
+#define SINSP_STR_WARNING(str)   SINSP_LOG_STR_(FALCO_LOG_SEV_WARNING, (str))
+#define SINSP_STR_NOTICE(str)    SINSP_LOG_STR_(FALCO_LOG_SEV_NOTICE,  (str))
+#define SINSP_STR_INFO(str)      SINSP_LOG_STR_(FALCO_LOG_SEV_INFO,    (str))
+#define SINSP_STR_DEBUG(str)     SINSP_LOG_STR_(FALCO_LOG_SEV_DEBUG,   (str))
+#define SINSP_STR_TRACE(str)     SINSP_LOG_STR_(FALCO_LOG_SEV_TRACE,   (str))
 
 #if _DEBUG
 #    define DBG_SINSP_FATAL(...)    SINSP_FATAL(   __VA_ARGS__)

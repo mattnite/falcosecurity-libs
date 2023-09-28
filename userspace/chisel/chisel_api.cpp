@@ -1409,30 +1409,30 @@ int lua_cbacks::log(lua_State *ls)
 	string message(lua_tostring(ls, 1));
 	string sevstr(lua_tostring(ls, 2));
 
-	sinsp_logger::severity sevcode = sinsp_logger::SEV_INFO;
+	falco_log_severity sevcode = FALCO_LOG_SEV_INFO;
 
 	if(sevstr == "debug")
 	{
-		sevcode = sinsp_logger::SEV_DEBUG;
+		sevcode = FALCO_LOG_SEV_DEBUG;
 	}
 	else if(sevstr == "info")
 	{
-		sevcode = sinsp_logger::SEV_INFO;
+		sevcode = FALCO_LOG_SEV_INFO;
 	}
 	else if(sevstr == "warning")
 	{
-		sevcode = sinsp_logger::SEV_WARNING;
+		sevcode = FALCO_LOG_SEV_WARNING;
 	}
 	else if(sevstr == "error")
 	{
-		sevcode = sinsp_logger::SEV_ERROR;
+		sevcode = FALCO_LOG_SEV_ERROR;
 	}
 	else if(sevstr == "critical")
 	{
-		sevcode = sinsp_logger::SEV_CRITICAL;
+		sevcode = FALCO_LOG_SEV_CRITICAL;
 	}
 
-	g_logger.log(message, sevcode);
+	g_logger.log(sevcode, message);
 
 	return 0;
 }

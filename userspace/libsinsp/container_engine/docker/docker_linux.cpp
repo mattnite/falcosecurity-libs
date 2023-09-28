@@ -53,7 +53,7 @@ bool docker_linux::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_in
 void docker_linux::update_with_size(const std::string &container_id)
 {
 	auto cb = [this](const docker_lookup_request& instruction, const sinsp_container_info& res) {
-		g_logger.format(sinsp_logger::SEV_DEBUG,
+		g_logger.format(FALCO_LOG_SEV_DEBUG,
 				"docker_async (%s): with size callback result=%d",
 				instruction.container_id.c_str(),
 				res.get_lookup_status());
@@ -62,7 +62,7 @@ void docker_linux::update_with_size(const std::string &container_id)
 		container_cache().replace_container(updated);
 	};
 
-	g_logger.format(sinsp_logger::SEV_DEBUG,
+	g_logger.format(FALCO_LOG_SEV_DEBUG,
 			"docker_async size request (%s)",
 			container_id.c_str());
 

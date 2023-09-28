@@ -63,14 +63,14 @@ template<typename api> cri_interface<api>::cri_interface(const std::string &cri_
 
 	if(!status.ok())
 	{
-		g_logger.format(sinsp_logger::SEV_NOTICE,
+		g_logger.format(FALCO_LOG_SEV_NOTICE,
 				"cri: CRI runtime returned an error after version check at %s: %s", cri_path.c_str(),
 				status.error_message().c_str());
 		m_cri.reset(nullptr);
 		return;
 	}
 
-	g_logger.format(sinsp_logger::SEV_INFO, "cri: CRI runtime: %s %s", vresp.runtime_name().c_str(),
+	g_logger.format(FALCO_LOG_SEV_INFO, "cri: CRI runtime: %s %s", vresp.runtime_name().c_str(),
 			vresp.runtime_version().c_str());
 
 	m_cri_image = api::ImageService::NewStub(channel);
@@ -129,7 +129,7 @@ std::optional<int64_t> cri_interface<api>::get_writable_layer_size(const std::st
 	typename api::ContainerStatsResponse resp;
 	grpc::Status status = get_container_stats(container_id, resp);
 
-	g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s): Status from ContainerStats: (%s)", container_id.c_str(),
+	g_logger.format(FALCO_LOG_SEV_DEBUG, "cri (%s): Status from ContainerStats: (%s)", container_id.c_str(),
 			status.error_message().empty() ? "SUCCESS" : status.error_message().c_str());
 
 	if(!status.ok())
@@ -139,7 +139,7 @@ std::optional<int64_t> cri_interface<api>::get_writable_layer_size(const std::st
 
 	if(!resp.has_stats())
 	{
-		g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s): Failed to update size: stats() not found",
+		g_logger.format(FALCO_LOG_SEV_DEBUG, "cri (%s): Failed to update size: stats() not found",
 				container_id.c_str());
 		ASSERT(false);
 		return std::nullopt;
@@ -149,7 +149,7 @@ std::optional<int64_t> cri_interface<api>::get_writable_layer_size(const std::st
 
 	if(!resp_stats.has_writable_layer())
 	{
-		g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s): Failed to update size: writable_layer() not found",
+		g_logger.format(FALCO_LOG_SEV_DEBUG, "cri (%s): Failed to update size: writable_layer() not found",
 				container_id.c_str());
 		ASSERT(false);
 		return std::nullopt;
@@ -157,7 +157,7 @@ std::optional<int64_t> cri_interface<api>::get_writable_layer_size(const std::st
 
 	if(!resp_stats.writable_layer().has_used_bytes())
 	{
-		g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s): Failed to update size: used_bytes() not found",
+		g_logger.format(FALCO_LOG_SEV_DEBUG, "cri (%s): Failed to update size: used_bytes() not found",
 				container_id.c_str());
 		ASSERT(false);
 		return std::nullopt;
@@ -181,7 +181,7 @@ bool cri_interface<api>::parse_cri_image(const typename api::ContainerStatus &st
 	bool get_tag_from_image = false;
 	auto digest_start = image_ref.find("sha256:");
 
-	g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s): parse_cri_image: image_ref=%s, digest_start=%d",
+	g_logger.format(FALCO_LOG_SEV_DEBUG, "cri (%s): parse_cri_image: image_ref=%s, digest_start=%d",
 			container.m_id.c_str(), image_ref.c_str(), digest_start);
 
 	switch(digest_start)
@@ -237,7 +237,7 @@ bool cri_interface<api>::parse_cri_image(const typename api::ContainerStatus &st
 		}
 	}
 
-	g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s): parse_cri_image: have_digest=%d image_name=%s",
+	g_logger.format(FALCO_LOG_SEV_DEBUG, "cri (%s): parse_cri_image: have_digest=%d image_name=%s",
 			container.m_id.c_str(), have_digest, image_name.c_str());
 
 	string hostname, port, digest;
@@ -246,7 +246,7 @@ bool cri_interface<api>::parse_cri_image(const typename api::ContainerStatus &st
 
 	if(get_tag_from_image)
 	{
-		g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s): parse_cri_image: tag=%s, pulling tag from %s",
+		g_logger.format(FALCO_LOG_SEV_DEBUG, "cri (%s): parse_cri_image: tag=%s, pulling tag from %s",
 				container.m_id.c_str(), container.m_imagetag.c_str(), status.image().image().c_str());
 
 		string digest2, repo;
@@ -268,7 +268,7 @@ bool cri_interface<api>::parse_cri_image(const typename api::ContainerStatus &st
 		container.m_imagedigest = digest;
 	}
 
-	g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s): parse_cri_image: repo=%s tag=%s image=%s digest=%s",
+	g_logger.format(FALCO_LOG_SEV_DEBUG, "cri (%s): parse_cri_image: repo=%s tag=%s image=%s digest=%s",
 			container.m_id.c_str(), container.m_imagerepo.c_str(), container.m_imagetag.c_str(),
 			container.m_image.c_str(), container.m_imagedigest.c_str());
 
@@ -603,7 +603,7 @@ void cri_interface<api>::get_container_ip(const std::string &container_id, uint3
 	switch(resp.containers_size())
 	{
 	case 0:
-		g_logger.format(sinsp_logger::SEV_WARNING, "Container id %s not in list from CRI",
+		g_logger.format(FALCO_LOG_SEV_WARNING, "Container id %s not in list from CRI",
 				container_id.c_str());
 		ASSERT(false);
 		break;
@@ -620,7 +620,7 @@ void cri_interface<api>::get_container_ip(const std::string &container_id, uint3
 		}
 	}
 	default:
-		g_logger.format(sinsp_logger::SEV_WARNING, "Container id %s matches more than once in list from CRI",
+		g_logger.format(FALCO_LOG_SEV_WARNING, "Container id %s matches more than once in list from CRI",
 				container_id.c_str());
 		ASSERT(false);
 		break;
@@ -642,7 +642,7 @@ template<typename api> std::string cri_interface<api>::get_container_image_id(co
 	switch(resp.images_size())
 	{
 	case 0:
-		g_logger.format(sinsp_logger::SEV_WARNING, "Image ref %s not in list from CRI", image_ref.c_str());
+		g_logger.format(FALCO_LOG_SEV_WARNING, "Image ref %s not in list from CRI", image_ref.c_str());
 		ASSERT(false);
 		break;
 	case 1:
@@ -651,7 +651,7 @@ template<typename api> std::string cri_interface<api>::get_container_image_id(co
 		return image.id();
 	}
 	default:
-		g_logger.format(sinsp_logger::SEV_WARNING, "Image ref %s matches more than once in list from CRI",
+		g_logger.format(FALCO_LOG_SEV_WARNING, "Image ref %s matches more than once in list from CRI",
 				image_ref.c_str());
 		ASSERT(false);
 		break;
@@ -664,12 +664,12 @@ template<typename api>
 bool cri_interface<api>::parse_containerd(const typename api::ContainerStatusResponse &status,
 					  sinsp_container_info &container)
 {
-	g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s) in parse_containerd", container.m_id.c_str());
+	g_logger.format(FALCO_LOG_SEV_DEBUG, "cri (%s) in parse_containerd", container.m_id.c_str());
 
 	const auto &info_it = status.info().find("info");
 	if(info_it == status.info().end())
 	{
-		g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s) no info property, returning",
+		g_logger.format(FALCO_LOG_SEV_DEBUG, "cri (%s) no info property, returning",
 				container.m_id.c_str());
 		return false;
 	}
@@ -678,13 +678,13 @@ bool cri_interface<api>::parse_containerd(const typename api::ContainerStatusRes
 	Json::Reader reader;
 	if(!reader.parse(info_it->second, root))
 	{
-		g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s) could not json parse info, returning",
+		g_logger.format(FALCO_LOG_SEV_DEBUG, "cri (%s) could not json parse info, returning",
 				container.m_id.c_str());
 		ASSERT(false);
 		return false;
 	}
 
-	g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s): will parse info json: %s", container.m_id.c_str(),
+	g_logger.format(FALCO_LOG_SEV_DEBUG, "cri (%s): will parse info json: %s", container.m_id.c_str(),
 			info_it->second.c_str());
 
 	parse_cri_env(root, container);
@@ -714,7 +714,7 @@ bool cri_interface<api>::parse(const libsinsp::cgroup_limits::cgroup_limits_key 
 	typename api::ContainerStatusResponse resp;
 	grpc::Status status = get_container_status(container.m_id, resp);
 
-	g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s): Status from ContainerStatus: (%s)", container.m_id.c_str(),
+	g_logger.format(FALCO_LOG_SEV_DEBUG, "cri (%s): Status from ContainerStatus: (%s)", container.m_id.c_str(),
 			status.error_message().c_str());
 
 	if(!status.ok())
@@ -724,14 +724,14 @@ bool cri_interface<api>::parse(const libsinsp::cgroup_limits::cgroup_limits_key 
 			container.m_is_pod_sandbox = true;
 			return true;
 		}
-		g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s): id is neither a container nor a pod sandbox: %s",
+		g_logger.format(FALCO_LOG_SEV_DEBUG, "cri (%s): id is neither a container nor a pod sandbox: %s",
 				container.m_id.c_str(), status.error_message().c_str());
 		return false;
 	}
 
 	if(!resp.has_status())
 	{
-		g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s) no status, returning", container.m_id.c_str());
+		g_logger.format(FALCO_LOG_SEV_DEBUG, "cri (%s) no status, returning", container.m_id.c_str());
 		ASSERT(false);
 		return false;
 	}
@@ -772,7 +772,7 @@ bool cri_interface<api>::parse(const libsinsp::cgroup_limits::cgroup_limits_key 
 		// name stays at its default "<NA>" value.
 	}
 
-	g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s): after parse_containerd: repo=%s tag=%s image=%s digest=%s",
+	g_logger.format(FALCO_LOG_SEV_DEBUG, "cri (%s): after parse_containerd: repo=%s tag=%s image=%s digest=%s",
 			container.m_id.c_str(), container.m_imagerepo.c_str(), container.m_imagetag.c_str(),
 			container.m_image.c_str(), container.m_imagedigest.c_str());
 
@@ -785,7 +785,7 @@ bool cri_interface<api>::parse(const libsinsp::cgroup_limits::cgroup_limits_key 
 		if(container.m_imageid.empty())
 		{
 			container.m_imageid = get_container_image_id(resp_container.image_ref());
-			g_logger.format(sinsp_logger::SEV_DEBUG,
+			g_logger.format(FALCO_LOG_SEV_DEBUG,
 					"cri (%s): after get_container_image_id: repo=%s tag=%s image=%s digest=%s",
 					container.m_id.c_str(), container.m_imagerepo.c_str(),
 					container.m_imagetag.c_str(), container.m_image.c_str(),

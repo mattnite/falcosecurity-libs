@@ -110,7 +110,7 @@ bool k8s_event_handler::handle_component(const Json::Value& json, const msg_data
 				if((data->m_reason == k8s_component::COMPONENT_ADDED) ||
 				   (data->m_reason == k8s_component::COMPONENT_MODIFIED))
 				{
-					g_logger.log("K8s EVENT: handling event.", sinsp_logger::SEV_TRACE);
+					g_logger.log(FALCO_LOG_SEV_TRACE, "K8s EVENT: handling event.");
 					const Json::Value& involved_object = json["involvedObject"];
 					if(!involved_object.isNull())
 					{
@@ -136,19 +136,19 @@ bool k8s_event_handler::handle_component(const Json::Value& json, const msg_data
 						else
 						{
 							// Ideally we should NEVER hit this case. But log it if we do, so we know.
-							g_logger.log("K8s EVENT: both eventTime and lastTimestamp are null, using current timestamp. Event Json : " + Json::FastWriter().write(json) , sinsp_logger::SEV_INFO);
+							g_logger.log(FALCO_LOG_SEV_INFO , "K8s EVENT: both eventTime and lastTimestamp are null, using current timestamp. Event Json : " + Json::FastWriter().write(json));
 							last_ts = now_ts;
 						}
-						g_logger.log("K8s EVENT: lastTimestamp=" + std::to_string(last_ts) + ", now_ts=" + std::to_string(now_ts),
-							     sinsp_logger::SEV_TRACE);
+						g_logger.log(FALCO_LOG_SEV_TRACE,
+							     "K8s EVENT: lastTimestamp=" + std::to_string(last_ts) + ", now_ts=" + std::to_string(now_ts));
 						if(((last_ts > 0) && (now_ts > 0)) && // we got good timestamps
 						   !is_aggregate && // not an aggregated cached event
 						   ((now_ts - last_ts) < 10)) // event not older than 10 seconds
 						{
 							const Json::Value& kind = involved_object["kind"];
 							const Json::Value& event_reason = json["reason"];
-							g_logger.log("K8s EVENT: involved object and event reason found:" + kind.asString() + '/' + event_reason.asString(),
-										 sinsp_logger::SEV_TRACE);
+							g_logger.log(FALCO_LOG_SEV_TRACE,
+										 "K8s EVENT: involved object and event reason found:" + kind.asString() + '/' + event_reason.asString());
 							if(!kind.isNull() && kind.isConvertibleTo(Json::stringValue) &&
 								!event_reason.isNull() && event_reason.isConvertibleTo(Json::stringValue))
 							{
@@ -172,10 +172,10 @@ bool k8s_event_handler::handle_component(const Json::Value& json, const msg_data
 																	data->m_name, data->m_uid, data->m_namespace);
 										m_state->update_event(evt, json);
 										m_event_limit_exceeded = false;
-										if(g_logger.get_severity() >= sinsp_logger::SEV_DEBUG)
+										if(g_logger.get_severity() >= FALCO_LOG_SEV_DEBUG)
 										{
-											g_logger.log("K8s EVENT: added event [" + data->m_name + "]. "
-														 "Queued events count=" + std::to_string(evts.size()), sinsp_logger::SEV_DEBUG);
+											g_logger.log(FALCO_LOG_SEV_DEBUG, "K8s EVENT: added event [" + data->m_name + "]. "
+														 "Queued events count=" + std::to_string(evts.size()));
 										}
 									}
 									else if(!m_event_limit_exceeded) // only get in here once per cycle, to send event overflow warning
@@ -191,11 +191,11 @@ bool k8s_event_handler::handle_component(const Json::Value& json, const msg_data
 								}
 								else // event not allowed by filter, ignore
 								{
-									if(g_logger.get_severity() >= sinsp_logger::SEV_TRACE)
+									if(g_logger.get_severity() >= FALCO_LOG_SEV_TRACE)
 									{
-										g_logger.log("K8s EVENT: filter does not allow {\"" + type + "\", \"{" + event_reason.asString() + "\"} }",
-												 sinsp_logger::SEV_TRACE);
-										g_logger.log(m_event_filter->to_string(), sinsp_logger::SEV_TRACE);
+										g_logger.log(FALCO_LOG_SEV_TRACE,
+												 "K8s EVENT: filter does not allow {\"" + type + "\", \"{" + event_reason.asString() + "\"} }");
+										g_logger.log(FALCO_LOG_SEV_TRACE, m_event_filter->to_string());
 									}
 									m_event_ignored = true;
 									return false;
@@ -203,27 +203,27 @@ bool k8s_event_handler::handle_component(const Json::Value& json, const msg_data
 							}
 							else
 							{
-								g_logger.log("K8s EVENT: event type or involvedObject kind not found.", sinsp_logger::SEV_ERROR);
-								if(g_logger.get_severity() >= sinsp_logger::SEV_TRACE)
+								g_logger.log(FALCO_LOG_SEV_ERROR, "K8s EVENT: event type or involvedObject kind not found.");
+								if(g_logger.get_severity() >= FALCO_LOG_SEV_TRACE)
 								{
-									g_logger.log(Json::FastWriter().write(json), sinsp_logger::SEV_TRACE);
+									g_logger.log(FALCO_LOG_SEV_TRACE, Json::FastWriter().write(json));
 								}
 								return false;
 							}
 						}
 						else // old event, ignore
 						{
-							g_logger.log("K8s EVENT: old event, ignoring: "
-										 ", lastTimestamp=" + std::to_string(last_ts) + ", now_ts=" + std::to_string(now_ts),
-										sinsp_logger::SEV_DEBUG);
+							g_logger.log(FALCO_LOG_SEV_DEBUG,
+										"K8s EVENT: old event, ignoring: "
+										 ", lastTimestamp=" + std::to_string(last_ts) + ", now_ts=" + std::to_string(now_ts));
 							m_event_ignored = true;
 							return false;
 						}
 					}
 					else
 					{
-						g_logger.log("K8s EVENT: involvedObject not found.", sinsp_logger::SEV_ERROR);
-						g_logger.log(Json::FastWriter().write(json), sinsp_logger::SEV_TRACE);
+						g_logger.log(FALCO_LOG_SEV_ERROR, "K8s EVENT: involvedObject not found.");
+						g_logger.log(FALCO_LOG_SEV_TRACE, Json::FastWriter().write(json));
 						return false;
 					}
 				}
@@ -235,20 +235,20 @@ bool k8s_event_handler::handle_component(const Json::Value& json, const msg_data
 			}
 			else
 			{
-				g_logger.log("K8s EVENT: msg data is null.", sinsp_logger::SEV_ERROR);
-				g_logger.log(Json::FastWriter().write(json), sinsp_logger::SEV_TRACE);
+				g_logger.log(FALCO_LOG_SEV_ERROR, "K8s EVENT: msg data is null.");
+				g_logger.log(FALCO_LOG_SEV_TRACE, Json::FastWriter().write(json));
 				return false;
 			}
 		}
 		else
 		{
-			g_logger.log("K8s EVENT: state is null.", sinsp_logger::SEV_ERROR);
+			g_logger.log(FALCO_LOG_SEV_ERROR, "K8s EVENT: state is null.");
 			return false;
 		}
 	}
 	else
 	{
-		g_logger.log("K8s EVENT: no filter, K8s events disabled.", sinsp_logger::SEV_TRACE);
+		g_logger.log(FALCO_LOG_SEV_TRACE, "K8s EVENT: no filter, K8s events disabled.");
 		return false;
 	}
 	return true;
@@ -256,9 +256,9 @@ bool k8s_event_handler::handle_component(const Json::Value& json, const msg_data
 
 void k8s_event_handler::handle_json(Json::Value&& root)
 {
-	/*if(g_logger.get_severity() >= sinsp_logger::SEV_TRACE)
+	/*if(g_logger.get_severity() >= FALCO_LOG_SEV_TRACE)
 	{
-		g_logger.log(json_as_string(root), sinsp_logger::SEV_TRACE);
+		g_logger.log(FALCO_LOG_SEV_TRACE, json_as_string(root));
 	}*/
 
 	if(!m_state)
@@ -287,26 +287,26 @@ void k8s_event_handler::handle_json(Json::Value&& root)
 							data.m_reason != k8s_component::COMPONENT_NONEXISTENT &&
 							data.m_reason != k8s_component::COMPONENT_ERROR)
 						{
-							g_logger.log(std::string("Unsupported K8S " + name() + " event reason: ") +
-										 std::to_string(data.m_reason), sinsp_logger::SEV_ERROR);
+							g_logger.log(FALCO_LOG_SEV_ERROR, std::string("Unsupported K8S " + name() + " event reason: ") +
+										 std::to_string(data.m_reason));
 							continue;
 						}
-						/*if(g_logger.get_severity() >= sinsp_logger::SEV_TRACE)
+						/*if(g_logger.get_severity() >= FALCO_LOG_SEV_TRACE)
 						{
-							g_logger.log("K8s handling event:\n" + json_as_string(item), sinsp_logger::SEV_TRACE);
+							g_logger.log(FALCO_LOG_SEV_TRACE, "K8s handling event:\n" + json_as_string(item));
 						}*/
 						if(handle_component(item, &data))
 						{
 							std::ostringstream os;
 							os << "K8s [" + reason_type + ", " << data.m_kind <<
 								", " << data.m_name << ", " << data.m_uid << "]";
-							g_logger.log(os.str(), sinsp_logger::SEV_INFO);
+							g_logger.log(FALCO_LOG_SEV_INFO, os.str());
 						}
 						else if(!m_event_ignored)
 						{
-							g_logger.log("K8s: error occurred while handling " + reason_type +
+							g_logger.log(FALCO_LOG_SEV_ERROR, "K8s: error occurred while handling " + reason_type +
 										 " event for " + data.m_kind + ' ' + data.m_name + " [" +
-										 data.m_uid + ']', sinsp_logger::SEV_ERROR);
+										 data.m_uid + ']');
 						}
 						m_event_ignored = false;
 					} // end for items
@@ -315,12 +315,12 @@ void k8s_event_handler::handle_json(Json::Value&& root)
 		}
 		else
 		{
-			g_logger.log(std::string("K8S event type is not string."), sinsp_logger::SEV_ERROR);
+			g_logger.log(FALCO_LOG_SEV_ERROR, std::string("K8S event type is not string."));
 		}
 	}
 	else
 	{
-		g_logger.log(std::string("K8S event type is null."), sinsp_logger::SEV_ERROR);
+		g_logger.log(FALCO_LOG_SEV_ERROR, std::string("K8S event type is null."));
 	}
 }
 #endif // CYGWING_AGENT

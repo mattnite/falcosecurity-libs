@@ -85,7 +85,7 @@ sinsp_initializer::sinsp_initializer()
 	//
 	// Init the logger
 	//
-	g_logger.set_severity(sinsp_logger::SEV_INFO);
+	g_logger.set_severity(FALCO_LOG_SEV_INFO);
 
 	//
 	// Sockets initialization on windows
@@ -1873,9 +1873,9 @@ unsigned int read_num_possible_cpus(void)
 ///////////////////////////////////////////////////////////////////////////////
 // Log helper
 ///////////////////////////////////////////////////////////////////////////////
-void sinsp_scap_debug_log_fn(const char* msg)
+void sinsp_scap_log_fn(const char *component, const falco_log_severity sev, const char* msg)
 {
-	g_logger.log(msg, sinsp_logger::SEV_DEBUG);
+	g_logger.log(sev, std::string("(") + component + ") " + msg);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -83,15 +83,15 @@ void k8s_net::watch()
 				}
 				else
 				{
-					g_logger.log("K8s: " + k8s_component::get_name(comp_type) + " connection error, removing component.",
-						 sinsp_logger::SEV_WARNING);
+					g_logger.log(FALCO_LOG_SEV_WARNING,
+						 "K8s: " + k8s_component::get_name(comp_type) + " connection error, removing component.");
 					if(m_collector->has(it->second->handler()))
 					{
 						m_collector->remove(it->second->handler());
 					}
 					m_handlers.erase(it++);
-					g_logger.log("K8s: " + k8s_component::get_name(comp_type) + " removed from watched endpoints.",
-						 sinsp_logger::SEV_INFO);
+					g_logger.log(FALCO_LOG_SEV_INFO,
+						 "K8s: " + k8s_component::get_name(comp_type) + " removed from watched endpoints.");
 				}
 			}
 			else
@@ -102,8 +102,8 @@ void k8s_net::watch()
 		}
 		else
 		{
-			g_logger.log("K8s: " + k8s_component::get_name(comp_type) + " handler is null.",
-						 sinsp_logger::SEV_WARNING);
+			g_logger.log(FALCO_LOG_SEV_WARNING,
+						 "K8s: " + k8s_component::get_name(comp_type) + " handler is null.");
 			++it;
 		}
 	}
@@ -205,8 +205,8 @@ void k8s_net::add_handler(const k8s_component::type_map::value_type& component)
 			}
 			else if(handler->name() == "events")
 			{
-				g_logger.log("K8s machine ID (MAC) is empty - scope may not be available for " + handler->name(),
-							 sinsp_logger::SEV_WARNING);
+				g_logger.log(FALCO_LOG_SEV_WARNING,
+							 "K8s machine ID (MAC) is empty - scope may not be available for " + handler->name());
 			}
 			m_handlers[component.first] = handler;
 		}
@@ -222,15 +222,15 @@ void k8s_net::add_handler(const k8s_component::type_map::value_type& component)
 			}
 			else
 			{
-				g_logger.log(os.str(), sinsp_logger::SEV_ERROR);
+				g_logger.log(FALCO_LOG_SEV_ERROR, os.str());
 			}
 		}
-		g_logger.log("K8s: created " + k8s_component::get_name(component) + " handler.", sinsp_logger::SEV_INFO);
+		g_logger.log(FALCO_LOG_SEV_INFO, "K8s: created " + k8s_component::get_name(component) + " handler.");
 	}
 	else
 	{
-		g_logger.log("K8s: component " + k8s_component::get_name(component) + " already exists.",
-					 sinsp_logger::SEV_TRACE);
+		g_logger.log(FALCO_LOG_SEV_TRACE,
+					 "K8s: component " + k8s_component::get_name(component) + " already exists.");
 	}
 }
 #else // !HAS_CAPTURE

@@ -15,8 +15,8 @@ docker_base::resolve_impl(sinsp_threadinfo *tinfo, const docker_lookup_request& 
 	container_cache_interface *cache = &container_cache();
 	if(!m_docker_info_source)
 	{
-		g_logger.log("docker_async: Creating docker async source",
-			     sinsp_logger::SEV_DEBUG);
+		g_logger.log(FALCO_LOG_SEV_DEBUG,
+			     "docker_async: Creating docker async source");
 		uint64_t max_wait_ms = 10000;
 		auto src = new docker_async_source(docker_async_source::NO_WAIT_LOOKUP, max_wait_ms, cache);
 		m_docker_info_source.reset(src);
@@ -40,7 +40,7 @@ docker_base::resolve_impl(sinsp_threadinfo *tinfo, const docker_lookup_request& 
 #ifdef HAS_CAPTURE
 		if(cache->should_lookup(request.container_id, request.container_type))
 		{
-			g_logger.format(sinsp_logger::SEV_DEBUG,
+			g_logger.format(FALCO_LOG_SEV_DEBUG,
 					"docker_async (%s): No existing container info",
 					request.container_id.c_str());
 
@@ -65,14 +65,14 @@ void docker_base::parse_docker(const docker_lookup_request& request, container_c
 	bool done;
 	if (cache->async_allowed())
 	{
-		g_logger.format(sinsp_logger::SEV_DEBUG,
+		g_logger.format(FALCO_LOG_SEV_DEBUG,
 				"docker_async (%s): Starting asynchronous lookup",
 				request.container_id.c_str());
 		done = m_docker_info_source->lookup(request, result);
 	}
 	else
 	{
-		g_logger.format(sinsp_logger::SEV_DEBUG,
+		g_logger.format(FALCO_LOG_SEV_DEBUG,
 				"docker_async (%s): Starting synchronous lookup",
 				request.container_id.c_str());
 		done = m_docker_info_source->lookup_sync(request, result);
@@ -85,7 +85,7 @@ void docker_base::parse_docker(const docker_lookup_request& request, container_c
 		if(cache->async_allowed())
 		{
 			// This should *never* happen, in async mode as ttl is 0 (never wait)
-			g_logger.format(sinsp_logger::SEV_ERROR,
+			g_logger.format(FALCO_LOG_SEV_ERROR,
 					"docker_async (%s): Unexpected immediate return from docker_info_source.lookup()",
 					request.container_id.c_str());
 

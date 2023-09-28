@@ -47,12 +47,10 @@ static int32_t scap_linux_close_platform(struct scap_platform* platform)
 	return SCAP_SUCCESS;
 }
 
-static void scap_linux_free_platform(struct scap_platform* platform)
-{
-	free(platform);
-}
+static void scap_linux_free_platform(struct scap_platform* platform) { free(platform); }
 
-int32_t scap_linux_init_platform(struct scap_platform* platform, char* lasterr, struct scap_engine_handle engine, struct scap_open_args* oargs)
+int32_t scap_linux_init_platform(struct scap_platform* platform, char* lasterr, struct scap_engine_handle engine,
+				 struct scap_open_args* oargs)
 {
 	int rc;
 	struct scap_linux_platform* linux_platform = (struct scap_linux_platform*)platform;
@@ -60,7 +58,7 @@ int32_t scap_linux_init_platform(struct scap_platform* platform, char* lasterr, 
 	linux_platform->m_engine = engine;
 	linux_platform->m_proc_scan_timeout_ms = oargs->proc_scan_timeout_ms;
 	linux_platform->m_proc_scan_log_interval_ms = oargs->proc_scan_log_interval_ms;
-	linux_platform->m_debug_log_fn = oargs->debug_log_fn;
+	linux_platform->m_log_fn = oargs->log_fn;
 
 	rc = scap_linux_create_iflist(platform);
 	if(rc != SCAP_SUCCESS)
@@ -91,7 +89,10 @@ int32_t scap_linux_init_platform(struct scap_platform* platform, char* lasterr, 
 	rc = scap_linux_refresh_proc_table(platform, &platform->m_proclist);
 	if(rc != SCAP_SUCCESS)
 	{
-		snprintf(linux_platform->m_lasterr, SCAP_LASTERR_SIZE, "scap_open_live_int() error creating the process list: %s. Make sure you have root credentials.", proc_scan_err);
+		snprintf(linux_platform->m_lasterr, SCAP_LASTERR_SIZE,
+			 "scap_open_live_int() error creating the process list: %s. Make sure you have root "
+			 "credentials.",
+			 proc_scan_err);
 		scap_linux_free_platform(platform);
 		return rc;
 	}

@@ -188,13 +188,13 @@ inline mesos_http::json_ptr_t mesos_http::try_parse(const std::string& json, con
 		{
 			std::string errstr;
 			errstr = Json::Reader().getFormattedErrorMessages();
-			g_logger.log("mesos_http::try_parse could not parse json (" + errstr + ")", sinsp_logger::SEV_WARNING);
+			g_logger.log(FALCO_LOG_SEV_WARNING, "mesos_http::try_parse could not parse json (" + errstr + ")");
 			g_json_error_log.log(json, errstr, sinsp_utils::get_current_time_ns(), uri);
 		}
 	}
 	catch(const Json::Exception &e)
 	{
-		g_logger.log("Could not parse JSON document: " + std::string(e.what()), sinsp_logger::SEV_WARNING);
+		g_logger.log(FALCO_LOG_SEV_WARNING, "Could not parse JSON document: " + std::string(e.what()));
 		g_json_error_log.log(json, e.what(), sinsp_utils::get_current_time_ns(), uri);
 	}
 	catch(...) { }

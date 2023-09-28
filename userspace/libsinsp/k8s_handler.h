@@ -117,7 +117,7 @@ protected:
 		}
 		else
 		{
-			g_logger.log("K8s Replication Controller: Null selector object.", sinsp_logger::SEV_ERROR);
+			g_logger.log(FALCO_LOG_SEV_ERROR, "K8s Replication Controller: Null selector object.");
 		}
 	}
 
@@ -269,16 +269,16 @@ inline bool k8s_handler::is_state_built() const
 
 inline void k8s_handler::log_event(const msg_data& data)
 {
-	g_logger.log("K8s " + data.get_reason_desc() + ' ' +
+	g_logger.log(FALCO_LOG_SEV_DEBUG,
+				 "K8s " + data.get_reason_desc() + ' ' +
 				 data.m_kind + ' ' +
-				 data.m_name + " [" + data.m_uid + "]",
-				 sinsp_logger::SEV_DEBUG);
+				 data.m_name + " [" + data.m_uid + "]");
 }
 
 inline void k8s_handler::log_not_found(const msg_data& data) const
 {
-	g_logger.log("K8s " + name() + " not found [" + data.m_uid + "]: " + data.m_name,
-				 sinsp_logger::SEV_ERROR);
+	g_logger.log(FALCO_LOG_SEV_ERROR,
+				 "K8s " + name() + " not found [" + data.m_uid + "]: " + data.m_name);
 }
 
 inline k8s_handler::api_error_ptr k8s_handler::error() const

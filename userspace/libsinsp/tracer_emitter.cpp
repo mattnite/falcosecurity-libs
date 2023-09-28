@@ -75,7 +75,7 @@ void tracer_writer::write(const std::string &trc)
 
 	if (ret < 0 && errno != EINTR)
 	{
-		g_logger.format(sinsp_logger::SEV_ERROR,
+		g_logger.format(FALCO_LOG_SEV_ERROR,
 				"Unable to write tracer (%s) to %s: %s",
 				trc.c_str(), m_file, strerror(errno));
 		close_fd();
@@ -84,7 +84,7 @@ void tracer_writer::write(const std::string &trc)
 	else if ((size_t)ret != trc.length())
 	{
 		ASSERT(false);
-		g_logger.format(sinsp_logger::SEV_ERROR,
+		g_logger.format(FALCO_LOG_SEV_ERROR,
 				"Incomplete write of tracer (%s) to %s",
 				trc.c_str(), m_file);
 		close_fd();
@@ -104,12 +104,12 @@ int tracer_writer::get_fd()
 	m_open_interval.run(
 		[this]()
 		{
-			g_logger.format(sinsp_logger::SEV_DEBUG,
+			g_logger.format(FALCO_LOG_SEV_DEBUG,
 					"Opening %s for writing tracers", m_file);
 			m_fd = ::open(m_file, O_WRONLY|O_NONBLOCK|O_CLOEXEC);
 			if (m_fd < 0)
 			{
-				g_logger.format(sinsp_logger::SEV_ERROR,
+				g_logger.format(FALCO_LOG_SEV_ERROR,
 						"Unable to open %s for writing tracers: %s",
 						m_file, strerror(errno));
 			}
@@ -124,7 +124,7 @@ void tracer_writer::close_fd()
 
 	if (m_fd > -1)
 	{
-		g_logger.format(sinsp_logger::SEV_DEBUG,
+		g_logger.format(FALCO_LOG_SEV_DEBUG,
 				"Closing %s (fd %d) for writing tracers",
 				m_file, m_fd);
 		::close(m_fd);
@@ -204,7 +204,7 @@ uint64_t tracer_emitter::elapsed_time() const
 	auto elapsed = sinsp_utils::get_current_time_ns() - m_start_ns;
 	if (elapsed > m_timeout_ns)
 	{
-		g_logger.format(sinsp_logger::SEV_INFO, "Tracer %s elapsed time %llu ns", m_tag.c_str(), elapsed);
+		g_logger.format(FALCO_LOG_SEV_INFO, "Tracer %s elapsed time %llu ns", m_tag.c_str(), elapsed);
 	}
 	return elapsed;
 }

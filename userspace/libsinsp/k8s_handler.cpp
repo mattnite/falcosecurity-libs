@@ -88,13 +88,13 @@ k8s_handler::k8s_handler(const std::string& id,
 		m_is_captured(is_captured)
 {
 #if defined(HAS_CAPTURE) && !defined(_WIN32)
-	g_logger.log("Creating K8s " + name() + " (" + m_id + ") "
-				 "handler object for [" + uri(m_url).to_string(false) + m_path + ']',
-				 sinsp_logger::SEV_DEBUG);
+	g_logger.log(FALCO_LOG_SEV_DEBUG,
+				 "Creating K8s " + name() + " (" + m_id + ") "
+				 "handler object for [" + uri(m_url).to_string(false) + m_path + ']');
 	if(m_connect)
 	{
-		g_logger.log(std::string("K8s (" + m_id + ") creating handler for " +
-							 uri(m_url).to_string(false) + m_path), sinsp_logger::SEV_DEBUG);
+		g_logger.log(FALCO_LOG_SEV_DEBUG, std::string("K8s (" + m_id + ") creating handler for " +
+							 uri(m_url).to_string(false) + m_path));
 		m_handler = std::make_shared<handler_t>(*this, m_id, m_url, m_path, m_http_version,
 											 m_timeout_ms, m_ssl, m_bt, !m_blocking_socket, m_blocking_socket,
 											 SOCKET_HANDLER_DATA_LIMIT, true, data_max_b, data_chunk_wait_us);
@@ -134,8 +134,8 @@ void k8s_handler::make_http()
 	{
 		if(!m_handler)
 		{
-			g_logger.log("K8s (" + m_id + ") creating handler for " +
-						 uri(m_url).to_string(false) + m_path, sinsp_logger::SEV_INFO);
+			g_logger.log(FALCO_LOG_SEV_INFO, "K8s (" + m_id + ") creating handler for " +
+						 uri(m_url).to_string(false) + m_path);
 			m_handler = std::make_shared<handler_t>(*this, m_id, m_url, m_path, m_http_version,
 												 m_timeout_ms, m_ssl, m_bt, true, m_blocking_socket);
 			m_handler->set_json_callback(&k8s_handler::set_event_json);
@@ -155,8 +155,8 @@ void k8s_handler::make_http()
 		// - error filter should be there, but just in case let's double-check
 		if(!m_handler->has_json_filter(ERROR_FILTER))
 		{
-			g_logger.log("K8s (" + m_id + ") error filter was not present in state handler, adding it for events.",
-						 sinsp_logger::SEV_WARNING);
+			g_logger.log(FALCO_LOG_SEV_WARNING,
+						 "K8s (" + m_id + ") error filter was not present in state handler, adding it for events.");
 			m_handler->add_json_filter(ERROR_FILTER);
 		}
 		// - good event filter must always be before error event filter
@@ -181,15 +181,15 @@ void k8s_handler::check_enabled()
 #if defined(HAS_CAPTURE) && !defined(_WIN32)
 	if(!m_handler->is_enabled())
 	{
-		g_logger.log("k8s_handler (" + m_id +
-					") check_enabled() enabling socket in collector", sinsp_logger::SEV_TRACE);
+		g_logger.log(FALCO_LOG_SEV_TRACE, "k8s_handler (" + m_id +
+					") check_enabled() enabling socket in collector");
 		m_handler->enable();
 	}
 	else
 	{
-		g_logger.log("k8s_handler (" + m_id +
+		g_logger.log(FALCO_LOG_SEV_TRACE, "k8s_handler (" + m_id +
 					") check_enabled() socket in collector is enabled, "
-					"checking collector status.", sinsp_logger::SEV_TRACE);
+					"checking collector status.");
 		check_collector_status();
 	}
 #endif // HAS_CAPTURE
@@ -202,30 +202,30 @@ bool k8s_handler::connect()
 	{
 		if(!m_collector->has(m_handler))
 		{
-			g_logger.log(std::string("k8s_handler (" + m_id +
-									 ") k8s_handler::connect() adding handler to collector"), sinsp_logger::SEV_TRACE);
+			g_logger.log(FALCO_LOG_SEV_TRACE, std::string("k8s_handler (" + m_id +
+									 ") k8s_handler::connect() adding handler to collector"));
 			m_collector->add(m_handler);
 			return false;
 		}
 		if(m_handler->is_connecting())
 		{
-			g_logger.log(std::string("k8s_handler (" + m_id +
-									 "), k8s_handler::connect() connecting to " + m_handler->get_url().to_string(false)), sinsp_logger::SEV_TRACE);
+			g_logger.log(FALCO_LOG_SEV_TRACE, std::string("k8s_handler (" + m_id +
+									 "), k8s_handler::connect() connecting to " + m_handler->get_url().to_string(false)));
 			return false;
 		}
 		if(m_handler->is_connected())
 		{
-			g_logger.log("k8s_handler (" + m_id +
-						") k8s_handler::connect() socket is connected.", sinsp_logger::SEV_TRACE);
+			g_logger.log(FALCO_LOG_SEV_TRACE, "k8s_handler (" + m_id +
+						") k8s_handler::connect() socket is connected.");
 			check_enabled();
 			return true;
 		}
 	}
 	else if (m_collector && !m_url.empty())
 	{
-		g_logger.log(std::string("k8s_handler (" + m_id +
-								 ") k8s_handler::connect(), http is null, (re)creating ... "),
-								 sinsp_logger::SEV_WARNING);
+		g_logger.log(FALCO_LOG_SEV_WARNING,
+								 std::string("k8s_handler (" + m_id +
+								 ") k8s_handler::connect(), http is null, (re)creating ... "));
 		make_http();
 	}
 #endif // HAS_CAPTURE
@@ -241,17 +241,17 @@ void k8s_handler::send_data_request()
 		{
 			if(m_handler->is_connected())
 			{
-				g_logger.log("k8s_handler (" + m_id + ") sending request to " +
-							 m_handler->get_url().to_string(false) + m_path,
-							 sinsp_logger::SEV_DEBUG);
+				g_logger.log(FALCO_LOG_SEV_DEBUG,
+							 "k8s_handler (" + m_id + ") sending request to " +
+							 m_handler->get_url().to_string(false) + m_path);
 				m_handler->send_request();
 				m_req_sent = true;
 			}
 			else if(m_handler->is_connecting())
 			{
-				g_logger.log("k8s_handler (" + m_id + ") is connecting to " +
-							 m_handler->get_url().to_string(false),
-							 sinsp_logger::SEV_DEBUG);
+				g_logger.log(FALCO_LOG_SEV_DEBUG,
+							 "k8s_handler (" + m_id + ") is connecting to " +
+							 m_handler->get_url().to_string(false));
 			}
 		}
 	}
@@ -302,8 +302,8 @@ bool k8s_handler::is_alive() const
 #if defined(HAS_CAPTURE) && !defined(_WIN32)
 	if(m_handler && !m_handler->is_connecting() && !m_handler->is_connected())
 	{
-		g_logger.log("k8s_handler (" + m_id + ") connection (" + m_handler->get_url().to_string(false) + ") loss.",
-					 sinsp_logger::SEV_WARNING);
+		g_logger.log(FALCO_LOG_SEV_WARNING,
+					 "k8s_handler (" + m_id + ") connection (" + m_handler->get_url().to_string(false) + ") loss.");
 		return false;
 	}
 #endif // HAS_CAPTURE
@@ -335,9 +335,9 @@ void k8s_handler::check_state()
 	{
 		if(m_resp_recvd && m_watch && !m_watching)
 		{
-			g_logger.log("k8s_handler (" + m_id + ") switching to watch connection for " +
-						 uri(m_url).to_string(false) + m_path,
-						 sinsp_logger::SEV_DEBUG);
+			g_logger.log(FALCO_LOG_SEV_DEBUG,
+						 "k8s_handler (" + m_id + ") switching to watch connection for " +
+						 uri(m_url).to_string(false) + m_path);
 			std::string::size_type pos = m_id.find("_state");
 			if(pos != std::string::npos)
 			{
@@ -389,25 +389,25 @@ void k8s_handler::collect_data()
 	{
 		process_events(); // there may be leftovers from state connection closed by collector
 		check_state(); // switch to events, if needed
-		g_logger.log("k8s_handler (" + m_id + ")::collect_data(), checking connection to " + uri(m_url).to_string(false), sinsp_logger::SEV_DEBUG);
+		g_logger.log(FALCO_LOG_SEV_DEBUG, "k8s_handler (" + m_id + ")::collect_data(), checking connection to " + uri(m_url).to_string(false));
 		if(m_handler->is_connecting())
 		{
-			g_logger.log("k8s_handler (" + m_id + ")::collect_data(), connecting to " + uri(m_url).to_string(false), sinsp_logger::SEV_DEBUG);
+			g_logger.log(FALCO_LOG_SEV_DEBUG, "k8s_handler (" + m_id + ")::collect_data(), connecting to " + uri(m_url).to_string(false));
 			return;
 		}
 		else if(m_handler->is_connected())
 		{
 			if(!m_connect_logged)
 			{
-				g_logger.log("k8s_handler (" + m_id + ")::collect_data(), connected to " + uri(m_url).to_string(false) + m_path,  sinsp_logger::SEV_DEBUG);
+				g_logger.log(FALCO_LOG_SEV_DEBUG,  "k8s_handler (" + m_id + ")::collect_data(), connected to " + uri(m_url).to_string(false) + m_path);
 				m_connect_logged = true;
 			}
 			check_enabled();
 			if(!m_req_sent)
 			{
-				g_logger.log("k8s_handler (" + m_id + ")::collect_data() [" + uri(m_url).to_string(false) + "], requesting data "
-							 "from " + m_path + "... m_blocking_socket=" + std::to_string(m_blocking_socket) + ", m_watching=" + std::to_string(m_watching),
-							 sinsp_logger::SEV_DEBUG);
+				g_logger.log(FALCO_LOG_SEV_DEBUG,
+							 "k8s_handler (" + m_id + ")::collect_data() [" + uri(m_url).to_string(false) + "], requesting data "
+							 "from " + m_path + "... m_blocking_socket=" + std::to_string(m_blocking_socket) + ", m_watching=" + std::to_string(m_watching));
 				send_data_request();
 				if(m_blocking_socket && !m_watching)
 				{
@@ -419,9 +419,9 @@ void k8s_handler::collect_data()
 					{
 						std::cout << "k8s_handler ("<<m_id<<"::collect_data()["<<uri(m_url).to_string(false)<<"] an error occurred while receiving data from "<<m_id<<
 						", m_blocking_socket="<<std::to_string(m_blocking_socket)<<", m_watching="<< std::to_string(m_watching)<<", "<<ex.what()<<std::endl;
-						g_logger.log("k8s_handler (" + m_id + ")::collect_data() error [" + uri(m_url).to_string(false) + "], receiving data "
-									 "from " + m_path + "... m_blocking_socket=" + std::to_string(m_blocking_socket) + ", m_watching=" + std::to_string(m_watching) + " " + ex.what(),
-							 		 sinsp_logger::SEV_ERROR);
+						g_logger.log(FALCO_LOG_SEV_ERROR,
+							 		 "k8s_handler (" + m_id + ")::collect_data() error [" + uri(m_url).to_string(false) + "], receiving data "
+									 "from " + m_path + "... m_blocking_socket=" + std::to_string(m_blocking_socket) + ", m_watching=" + std::to_string(m_watching) + " " + ex.what());
 						// If a temporary error occurred while receiving the response, we set the state of the handler to be able to retry the
 						// next time the collect_data() is called.
 						m_watching = false;
@@ -435,28 +435,28 @@ void k8s_handler::collect_data()
 			}
 			if(m_collector->subscription_count())
 			{
-				g_logger.log("k8s_handler (" + m_id + ")::collect_data() [" + uri(m_url).to_string(false) + "], getting data "
-							 "from " + m_path + "...",  sinsp_logger::SEV_DEBUG);
+				g_logger.log(FALCO_LOG_SEV_DEBUG,  "k8s_handler (" + m_id + ")::collect_data() [" + uri(m_url).to_string(false) + "], getting data "
+							 "from " + m_path + "...");
 				m_collector->get_data();
-				g_logger.log("k8s_handler (" + m_id + ")::collect_data(), " + std::to_string(m_events.size()) +
-							 " events from " + uri(m_url).to_string(false) + m_path, sinsp_logger::SEV_DEBUG);
+				g_logger.log(FALCO_LOG_SEV_DEBUG, "k8s_handler (" + m_id + ")::collect_data(), " + std::to_string(m_events.size()) +
+							 " events from " + uri(m_url).to_string(false) + m_path);
 				if(m_events.size())
 				{
-					g_logger.log("k8s_handler (" + m_id + ")::collect_data(), data from " + uri(m_url).to_string(false) + m_path +
-								 ", event count=" + std::to_string(m_events.size()), sinsp_logger::SEV_DEBUG);
+					g_logger.log(FALCO_LOG_SEV_DEBUG, "k8s_handler (" + m_id + ")::collect_data(), data from " + uri(m_url).to_string(false) + m_path +
+								 ", event count=" + std::to_string(m_events.size()));
 					process_events();
 					check_state();
 				}
 				else
 				{
-					g_logger.log("k8s_handler (" + m_id + ") collect_data(), no data from " + uri(m_url).to_string(false) + m_path,
-							 sinsp_logger::SEV_DEBUG);
+					g_logger.log(FALCO_LOG_SEV_DEBUG,
+							 "k8s_handler (" + m_id + ") collect_data(), no data from " + uri(m_url).to_string(false) + m_path);
 				}
 			}
 			else
 			{
-				g_logger.log("k8s_handler (" + m_id + ") collect_data(), no subscriptions to " + uri(m_url).to_string(false) + m_path,
-						 sinsp_logger::SEV_DEBUG);
+				g_logger.log(FALCO_LOG_SEV_DEBUG,
+						 "k8s_handler (" + m_id + ") collect_data(), no subscriptions to " + uri(m_url).to_string(false) + m_path);
 			}
 			return;
 		}
@@ -468,8 +468,8 @@ void k8s_handler::collect_data()
 	}
 	else
 	{
-		g_logger.log("k8s_handler (" + m_id + "), http interface not (yet?) created for " + uri(m_url).to_string(false) + ").",
-					 sinsp_logger::SEV_TRACE);
+		g_logger.log(FALCO_LOG_SEV_TRACE,
+					 "k8s_handler (" + m_id + "), http interface not (yet?) created for " + uri(m_url).to_string(false) + ").");
 	}
 #endif // HAS_CAPTURE
 }
@@ -513,9 +513,9 @@ k8s_handler::msg_data k8s_handler::get_msg_data(const std::string& type, const s
 
 void k8s_handler::handle_json(Json::Value&& root)
 {
-	/*if(g_logger.get_severity() >= sinsp_logger::SEV_TRACE)
+	/*if(g_logger.get_severity() >= FALCO_LOG_SEV_TRACE)
 	{
-		g_logger.log(json_as_string(root), sinsp_logger::SEV_TRACE);
+		g_logger.log(FALCO_LOG_SEV_TRACE, json_as_string(root));
 	}*/
 
 	if(!m_state)
@@ -573,7 +573,7 @@ void k8s_handler::handle_json(Json::Value&& root)
 									  " [" << uri(m_url).to_string(false) << "]"
 #endif // HAS_CAPTURE
 									  "for existing " << data.m_kind << " [" << data.m_uid << "], updating only.";
-								g_logger.log(os.str(), sinsp_logger::SEV_DEBUG);
+								g_logger.log(FALCO_LOG_SEV_DEBUG, os.str());
 							}
 						}
 						else if(data.m_reason == k8s_component::COMPONENT_MODIFIED)
@@ -586,7 +586,7 @@ void k8s_handler::handle_json(Json::Value&& root)
 									  " [" << uri(m_url).to_string(false) << "]"
 #endif // HAS_CAPTURE
 									  " for non-existing " << data.m_kind << " [" << data.m_uid << "], giving up.";
-								g_logger.log(os.str(), sinsp_logger::SEV_WARNING);
+								g_logger.log(FALCO_LOG_SEV_WARNING, os.str());
 								continue;
 							}
 						}
@@ -600,7 +600,7 @@ void k8s_handler::handle_json(Json::Value&& root)
 									  " [" << uri(m_url).to_string(false) << "]"
 #endif // HAS_CAPTURE
 									  " for non-existing " << data.m_kind << " [" << data.m_uid << "], giving up.";
-								g_logger.log(os.str(), sinsp_logger::SEV_WARNING);
+								g_logger.log(FALCO_LOG_SEV_WARNING, os.str());
 								continue;
 							}
 						}
@@ -613,33 +613,33 @@ void k8s_handler::handle_json(Json::Value&& root)
 						{
 							if(data.m_reason == k8s_component::COMPONENT_NONEXISTENT)
 							{
-								g_logger.log(std::string("Non-existent K8S component (" + name() + "), reason: ") +
-											 std::to_string(data.m_reason), sinsp_logger::SEV_DEBUG);
+								g_logger.log(FALCO_LOG_SEV_DEBUG, std::string("Non-existent K8S component (" + name() + "), reason: ") +
+											 std::to_string(data.m_reason));
 							}
 							else
 							{
-								g_logger.log(std::string("Unsupported K8S " + name() + " event reason: ") +
-											 std::to_string(data.m_reason), sinsp_logger::SEV_ERROR);
+								g_logger.log(FALCO_LOG_SEV_ERROR, std::string("Unsupported K8S " + name() + " event reason: ") +
+											 std::to_string(data.m_reason));
 							}
 							continue;
 						}
-						/*if(g_logger.get_severity() >= sinsp_logger::SEV_TRACE)
+						/*if(g_logger.get_severity() >= FALCO_LOG_SEV_TRACE)
 						{
-							g_logger.log("K8s handling item:\n" + json_as_string(item), sinsp_logger::SEV_TRACE);
+							g_logger.log(FALCO_LOG_SEV_TRACE, "K8s handling item:\n" + json_as_string(item));
 						}*/
 						if(handle_component(item, &data))
 						{
 							std::ostringstream os;
 							os << "K8s [" + reason_type + ", " << data.m_kind <<
 								", " << data.m_name << ", " << data.m_uid << "]";
-							g_logger.log(os.str(), sinsp_logger::SEV_INFO);
+							g_logger.log(FALCO_LOG_SEV_INFO, os.str());
 							m_state->update_cache(k8s_component::get_type(name()));
 						}
 						else
 						{
-							g_logger.log("K8s: error occurred while handling " + reason_type +
+							g_logger.log(FALCO_LOG_SEV_ERROR, "K8s: error occurred while handling " + reason_type +
 										 " event for " + data.m_kind + ' ' + data.m_name + " [" +
-										 data.m_uid + ']', sinsp_logger::SEV_ERROR);
+										 data.m_uid + ']');
 						}
 					} // end for items
 				}
@@ -647,12 +647,12 @@ void k8s_handler::handle_json(Json::Value&& root)
 		}
 		else
 		{
-			g_logger.log(std::string("K8S event type is not string."), sinsp_logger::SEV_ERROR);
+			g_logger.log(FALCO_LOG_SEV_ERROR, std::string("K8S event type is not string."));
 		}
 	}
 	else
 	{
-		g_logger.log(std::string("K8S event type is null."), sinsp_logger::SEV_ERROR);
+		g_logger.log(FALCO_LOG_SEV_ERROR, std::string("K8S event type is null."));
 	}
 }
 
@@ -675,7 +675,7 @@ k8s_handler::ip_addr_list_t k8s_handler::hostname_to_ip(const std::string& hostn
 
 	if((getaddrinfo(hostname.c_str(), NULL, &hints, &servinfo)) != 0)
 	{
-		g_logger.log("Can't determine IP address for hostname: " + hostname, sinsp_logger::SEV_WARNING);
+		g_logger.log(FALCO_LOG_SEV_WARNING, "Can't determine IP address for hostname: " + hostname);
 		return ip_addrs;
 	}
 
@@ -694,10 +694,10 @@ k8s_handler::ip_addr_list_t k8s_handler::hostname_to_ip(const std::string& hostn
 bool k8s_handler::dependency_ready() const
 {
 #if defined(HAS_CAPTURE) && !defined(_WIN32)
-	g_logger.log("k8s_handler (" + m_id + ") dependency "
+	g_logger.log(FALCO_LOG_SEV_TRACE,
+				 "k8s_handler (" + m_id + ") dependency "
 				 "(" + m_dependency_handler->get_id() + ") ready: " +
-				 std::to_string(m_dependency_handler->is_state_built()),
-				 sinsp_logger::SEV_TRACE);
+				 std::to_string(m_dependency_handler->is_state_built()));
 	return m_dependency_handler->is_state_built();
 #else
 	return true;
@@ -715,10 +715,10 @@ void k8s_handler::process_events()
 			if(++counter >= get_max_messages()) { break; }
 			if(*evt && !(*evt)->isNull())
 			{
-				if(g_logger.get_severity() >= sinsp_logger::SEV_TRACE)
+				if(g_logger.get_severity() >= FALCO_LOG_SEV_TRACE)
 				{
-					g_logger.log("k8s_handler (" + m_id + ") processing event data:\n" + json_as_string(*(*evt)),
-								 sinsp_logger::SEV_TRACE);
+					g_logger.log(FALCO_LOG_SEV_TRACE,
+								 "k8s_handler (" + m_id + ") processing event data:\n" + json_as_string(*(*evt)));
 				}
 #if defined(HAS_CAPTURE) && !defined(_WIN32)
 				if(m_is_captured)
@@ -730,12 +730,11 @@ void k8s_handler::process_events()
 			}
 			else
 			{
-				g_logger.log("k8s_handler (" + m_id + ") error " +
+				g_logger.log(FALCO_LOG_SEV_ERROR, "k8s_handler (" + m_id + ") error " +
 #if defined(HAS_CAPTURE) && !defined(_WIN32)
 							 "(" + uri(m_url).to_string(false) + ") " +
 #endif // HAS_CAPTURE
-							(!(*evt) ? "data is null." : ((*evt)->isNull() ? "JSON is null." : "Unknown")),
-							sinsp_logger::SEV_ERROR);
+							(!(*evt) ? "data is null." : ((*evt)->isNull() ? "JSON is null." : "Unknown")));
 			}
 			evt = m_events.erase(evt);
 		}
@@ -745,19 +744,19 @@ void k8s_handler::process_events()
 
 void k8s_handler::set_event_json(json_ptr_t json, const std::string&)
 {
-	g_logger.log("k8s_handler adding event, (" + m_id + ") has " + std::to_string(m_events.size())
+	g_logger.log(FALCO_LOG_SEV_TRACE, "k8s_handler adding event, (" + m_id + ") has " + std::to_string(m_events.size())
 #if defined(HAS_CAPTURE) && !defined(_WIN32)
 				+ " events from " + uri(m_url).to_string(false)
 #endif // HAS_CAPTURE
-				, sinsp_logger::SEV_TRACE);
+				);
 	// empty JSON is fine here; if there are no entities, state and first watch will pass nothing in here
 	// null is checked when processing
 	m_events.emplace_back(json);
-	g_logger.log("k8s_handler added event, (" + m_id + ") has " + std::to_string(m_events.size())
+	g_logger.log(FALCO_LOG_SEV_TRACE, "k8s_handler added event, (" + m_id + ") has " + std::to_string(m_events.size())
 #if defined(HAS_CAPTURE) && !defined(_WIN32)
 				+ " events from " + uri(m_url).to_string(false)
 #endif // HAS_CAPTURE
-				, sinsp_logger::SEV_TRACE);
+				);
 #if defined(HAS_CAPTURE) && !defined(_WIN32)
 	if(!m_resp_recvd) { m_resp_recvd = true; }
 #endif // HAS_CAPTURE
@@ -820,7 +819,7 @@ void k8s_handler::log_error(const msg_data& data, const Json::Value& json)
 		m_error.reset(new k8s_api_error(data, json));
 	}
 	os << unk_err;
-	g_logger.log(os.str(), sinsp_logger::SEV_ERROR);
+	g_logger.log(FALCO_LOG_SEV_ERROR, os.str());
 #endif // HAS_CAPTURE
 }
 #endif // CYGWING_AGENT

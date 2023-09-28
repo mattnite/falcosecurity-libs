@@ -49,14 +49,14 @@ public:
 		{
 			int sockfd = handler->get_socket(m_timeout_ms);
 			m_sockets[sockfd] = handler;
-			g_logger.log("Socket collector: handler [" + handler->get_id() +
-						 "] added socket (" + std::to_string(sockfd) + ')',
-						 sinsp_logger::SEV_TRACE);
+			g_logger.log(FALCO_LOG_SEV_TRACE,
+						 "Socket collector: handler [" + handler->get_id() +
+						 "] added socket (" + std::to_string(sockfd) + ')');
 		}
 		else
 		{
-			g_logger.log("Socket collector: attempt to add null handler.",
-						 sinsp_logger::SEV_ERROR);
+			g_logger.log(FALCO_LOG_SEV_ERROR,
+						 "Socket collector: attempt to add null handler.");
 		}
 	}
 
@@ -76,8 +76,8 @@ public:
 			handler->enable();
 			return;
 		}
-		g_logger.log("Socket collector: attempt to enable non-existing handler.",
-			     sinsp_logger::SEV_ERROR);
+		g_logger.log(FALCO_LOG_SEV_ERROR,
+			     "Socket collector: attempt to enable non-existing handler.");
 	}
 
 	int get_socket(std::shared_ptr<T> handler) const
@@ -144,7 +144,7 @@ public:
 
 	void trace_sockets()
 	{
-		if(g_logger.get_severity() >= sinsp_logger::SEV_TRACE)
+		if(g_logger.get_severity() >= FALCO_LOG_SEV_TRACE)
 		{
 			for(typename socket_map_t::iterator it = m_sockets.begin(); it != m_sockets.end(); ++it)
 			{
@@ -152,26 +152,26 @@ public:
 				{
 					if(it->second->is_enabled())
 					{
-						g_logger.log("Socket collector: examining socket " + std::to_string(it->first) +
-										 " (" + it->second->get_id() + ')', sinsp_logger::SEV_TRACE);
+						g_logger.log(FALCO_LOG_SEV_TRACE, "Socket collector: examining socket " + std::to_string(it->first) +
+										 " (" + it->second->get_id() + ')');
 						if(FD_ISSET(it->first, &m_infd))
 						{
-							g_logger.log("Socket collector: activity on socket " + std::to_string(it->first) +
-										 " (" + it->second->get_id() + ')', sinsp_logger::SEV_TRACE);
+							g_logger.log(FALCO_LOG_SEV_TRACE, "Socket collector: activity on socket " + std::to_string(it->first) +
+										 " (" + it->second->get_id() + ')');
 						}
 					}
 					else
 					{
-						g_logger.log("Socket collector: socket " + std::to_string(it->first) +
-									 " handler (" + it->second->get_id() + ") is not enabled.",
-									 sinsp_logger::SEV_TRACE);
+						g_logger.log(FALCO_LOG_SEV_TRACE,
+									 "Socket collector: socket " + std::to_string(it->first) +
+									 " handler (" + it->second->get_id() + ") is not enabled.");
 					}
 				}
 				else
 				{
-					g_logger.log("Socket collector: socket " + std::to_string(it->first) +
-								 " handler (" + it->second->get_id() + ") is null.",
-								 sinsp_logger::SEV_TRACE);
+					g_logger.log(FALCO_LOG_SEV_TRACE,
+								 "Socket collector: socket " + std::to_string(it->first) +
+								 " handler (" + it->second->get_id() + ") is null.");
 				}
 			}
 		}
@@ -236,17 +236,17 @@ public:
 					if(m_sockets.size())
 					{
 						enable_sockets(); // flag all enabled handler sockets
-						g_logger.log("Socket collector: total sockets=" + std::to_string(m_sockets.size()) +
-										 ", select-enabled sockets= " + std::to_string(signaled_sockets_count()),
-										 sinsp_logger::SEV_TRACE);
+						g_logger.log(FALCO_LOG_SEV_TRACE,
+										 "Socket collector: total sockets=" + std::to_string(m_sockets.size()) +
+										 ", select-enabled sockets= " + std::to_string(signaled_sockets_count()));
 						res = select(m_nfds + 1, &m_infd, NULL, &m_errfd, &tv);
-						g_logger.log("Socket collector: total sockets=" + std::to_string(m_sockets.size()) +
-										 ", signaled sockets= " + std::to_string(signaled_sockets_count()),
-										 sinsp_logger::SEV_TRACE);
+						g_logger.log(FALCO_LOG_SEV_TRACE,
+										 "Socket collector: total sockets=" + std::to_string(m_sockets.size()) +
+										 ", signaled sockets= " + std::to_string(signaled_sockets_count()));
 						if(res == 0) // all quiet
 						{
-							g_logger.log("Socket collector: " + std::to_string(m_sockets.size()) + " sockets total, no activity.",
-										 sinsp_logger::SEV_DEBUG);
+							g_logger.log(FALCO_LOG_SEV_DEBUG,
+										 "Socket collector: " + std::to_string(m_sockets.size()) + " sockets total, no activity.");
 						}
 						else if(res < 0) // select error
 						{
@@ -268,13 +268,13 @@ public:
 										{
 											if(err != it->second->CONNECTION_CLOSED)
 											{
-												g_logger.log("Socket collector: data handling error " + std::to_string(errno) + ", (" +
-															 strerror(errno) + "), removing handler [" + id + ']', sinsp_logger::SEV_ERROR);
+												g_logger.log(FALCO_LOG_SEV_ERROR, "Socket collector: data handling error " + std::to_string(errno) + ", (" +
+															 strerror(errno) + "), removing handler [" + id + ']');
 											}
 											else
 											{
-												g_logger.log("Socket collector: connection close detected while handling data"
-															 ", removing handler [" + id + ']', sinsp_logger::SEV_DEBUG);
+												g_logger.log(FALCO_LOG_SEV_DEBUG, "Socket collector: connection close detected while handling data"
+															 ", removing handler [" + id + ']');
 											}
 											remove(it);
 											continue;
@@ -286,13 +286,13 @@ public:
 								{
 									if(it->second && (err = it->second->get_socket_error()))
 									{
-										g_logger.log("Socket collector: socket error " + std::to_string(err) + ", (" +
-													  strerror(err) + "), removing handler [" + id + ']', sinsp_logger::SEV_ERROR);
+										g_logger.log(FALCO_LOG_SEV_ERROR, "Socket collector: socket error " + std::to_string(err) + ", (" +
+													  strerror(err) + "), removing handler [" + id + ']');
 									}
 									else
 									{
-										g_logger.log("Socket collector: handler [" + id + "] unknown socket error, closing connection.",
-													 sinsp_logger::SEV_ERROR);
+										g_logger.log(FALCO_LOG_SEV_ERROR,
+													 "Socket collector: handler [" + id + "] unknown socket error, closing connection.");
 									}
 									remove(it);
 									continue;
@@ -303,7 +303,7 @@ public:
 					}
 					else
 					{
-						g_logger.log("Socket collector is empty.", sinsp_logger::SEV_DEBUG);
+						g_logger.log(FALCO_LOG_SEV_DEBUG, "Socket collector is empty.");
 						m_stopped = true;
 						return;
 					}
@@ -313,7 +313,7 @@ public:
 		}
 		catch(const std::exception& ex)
 		{
-			g_logger.log(std::string("Socket collector error: ") + ex.what(), sinsp_logger::SEV_ERROR);
+			g_logger.log(FALCO_LOG_SEV_ERROR, std::string("Socket collector error: ") + ex.what());
 			remove_all();
 			m_stopped = true;
 		}

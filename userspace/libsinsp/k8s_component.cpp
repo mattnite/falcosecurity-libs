@@ -504,10 +504,10 @@ int k8s_replicas_t::get_count(const Json::Value& item, const std::string& replic
 		}
 	}
 
-	if(g_logger.get_severity() >= sinsp_logger::SEV_DEBUG)
+	if(g_logger.get_severity() >= FALCO_LOG_SEV_DEBUG)
 	{
-		g_logger.log("K8s: Can not find " + replica_name + " in \n" + Json::FastWriter().write(item),
-					 sinsp_logger::SEV_DEBUG);
+		g_logger.log(FALCO_LOG_SEV_DEBUG,
+					 "K8s: Can not find " + replica_name + " in \n" + Json::FastWriter().write(item));
 
 		std::string name;
 		const Json::Value& tpl = item["template"];
@@ -536,9 +536,9 @@ int k8s_replicas_t::get_count(const Json::Value& item, const std::string& replic
 			}
 		}
 
-		g_logger.log("K8s: Can not determine number of replicas" +
-					 (name.empty() ? std::string() : std::string(" for ").append(name)),
-					 sinsp_logger::SEV_DEBUG);
+		g_logger.log(FALCO_LOG_SEV_DEBUG,
+					 "K8s: Can not determine number of replicas" +
+					 (name.empty() ? std::string() : std::string(" for ").append(name)));
 	}
 
 	return k8s_replicas_t::UNKNOWN_REPLICAS;
@@ -783,21 +783,21 @@ void k8s_event_t::post_process(k8s_state_t& state)
 {
 	for(auto it = m_postponed_events.cbegin(); it != m_postponed_events.end();)
 	{
-		g_logger.log("K8s event: " + std::to_string(m_postponed_events.size()) + " postponed events. "
-					 "post-processing event [" + it->first + "] ...", sinsp_logger::SEV_TRACE);
+		g_logger.log(FALCO_LOG_SEV_TRACE, "K8s event: " + std::to_string(m_postponed_events.size()) + " postponed events. "
+					 "post-processing event [" + it->first + "] ...");
 		m_force_delete = false;
 		bool updated = update(it->second, state);
 		if(updated || m_force_delete)
 		{
-			g_logger.log("K8s event: event [" + it->first +
-						 "] post-processed.", sinsp_logger::SEV_TRACE);
+			g_logger.log(FALCO_LOG_SEV_TRACE, "K8s event: event [" + it->first +
+						 "] post-processed.");
 			m_postponed_events.erase(it++);
 		}
 		else
 		{
-			g_logger.log("K8s event: event [" + it->first + "] not post-processed. There's " +
+			g_logger.log(FALCO_LOG_SEV_TRACE, "K8s event: event [" + it->first + "] not post-processed. There's " +
 						 std::to_string(m_postponed_events.size()) +
-						 " postponed events pending.", sinsp_logger::SEV_TRACE);
+						 " postponed events pending.");
 			++it;
 		}
 	}
@@ -815,9 +815,9 @@ bool k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 	tag_map_t   tags;
 
 	const Json::Value& obj = item["involvedObject"];
-	if(g_logger.get_severity() >= sinsp_logger::SEV_TRACE)
+	if(g_logger.get_severity() >= FALCO_LOG_SEV_TRACE)
 	{
-		g_logger.log("K8s EVENT: \n" + json_as_string(item), sinsp_logger::SEV_TRACE);
+		g_logger.log(FALCO_LOG_SEV_TRACE, "K8s EVENT: \n" + json_as_string(item));
 	}
 	if(!obj.isNull())
 	{
@@ -825,19 +825,19 @@ bool k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 		// currently, only "Normal" and "Warning"
 		severity = user_event_logger::SEV_EVT_INFORMATION;
 		if(sev == "Warning") { severity = user_event_logger::SEV_EVT_WARNING; }
-		if(g_logger.get_severity() >= sinsp_logger::SEV_TRACE)
+		if(g_logger.get_severity() >= FALCO_LOG_SEV_TRACE)
 		{
-			g_logger.log("K8s EVENT:"
+			g_logger.log(FALCO_LOG_SEV_TRACE, "K8s EVENT:"
 						"\nnamespace = " + get_json_string(obj, "namespace") +
 						"\nname = " + get_json_string(obj, "name") +
 						"\nuid = " + get_json_string(obj, "uid") +
 						"\ntype = " + get_json_string(obj, "kind") +
-						"\nseverity = " + get_json_string(item, "type") + " (" + std::to_string(severity) + ')', sinsp_logger::SEV_TRACE);
+						"\nseverity = " + get_json_string(item, "type") + " (" + std::to_string(severity) + ')');
 		}
 	}
 	else
 	{
-		g_logger.log("K8s event: cannot get involved object (null)", sinsp_logger::SEV_ERROR);
+		g_logger.log(FALCO_LOG_SEV_ERROR, "K8s event: cannot get involved object (null)");
 		m_force_delete = true;
 		return false;
 	}
@@ -847,13 +847,13 @@ bool k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 	{
 		if((epoch_time_evt_s = get_epoch_utc_seconds(ts)) == (time_t) -1)
 		{
-			g_logger.log("K8s event: cannot convert [" + ts + "] to epoch timestamp", sinsp_logger::SEV_ERROR);
+			g_logger.log(FALCO_LOG_SEV_ERROR, "K8s event: cannot convert [" + ts + "] to epoch timestamp");
 		}
-		g_logger.log("K8s EVENT update: time:" + std::to_string(epoch_time_evt_s), sinsp_logger::SEV_DEBUG);
+		g_logger.log(FALCO_LOG_SEV_DEBUG, "K8s EVENT update: time:" + std::to_string(epoch_time_evt_s));
 	}
 	else
 	{
-		g_logger.log("K8s event: cannot convert time (null, empty or not string)", sinsp_logger::SEV_ERROR);
+		g_logger.log(FALCO_LOG_SEV_ERROR, "K8s event: cannot convert time (null, empty or not string)");
 	}
 	event_name = get_json_string(item , "reason");
 	const auto& translation = m_name_translation.find(event_name);
@@ -862,7 +862,7 @@ bool k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 		event_name = translation->second;
 	}
 	description = get_json_string(item, "message");
-	g_logger.log("K8s EVENT message:" + description, sinsp_logger::SEV_DEBUG);
+	g_logger.log(FALCO_LOG_SEV_DEBUG, "K8s EVENT message:" + description);
 
 	// Although it's easier and more efficient to obtain the involved object data from
 	// the event itself, there is a downside - event may not carry the data in the
@@ -872,11 +872,11 @@ bool k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 	// not found in state (due to undefined arrival order of event and metadata messages),
 	// we get scope data from the event itself.
 	std::string component_uid = get_json_string(obj, "uid");
-	g_logger.log("K8s event UID:" + component_uid, sinsp_logger::SEV_TRACE);
+	g_logger.log(FALCO_LOG_SEV_TRACE, "K8s event UID:" + component_uid);
 	if(!component_uid.empty())
 	{
-		g_logger.log("K8s event: seconds since event occurred:" + std::to_string(epoch_time_now_s - epoch_time_evt_s),
-					 sinsp_logger::SEV_TRACE);
+		g_logger.log(FALCO_LOG_SEV_TRACE,
+					 "K8s event: seconds since event occurred:" + std::to_string(epoch_time_now_s - epoch_time_evt_s));
 		std::string t;
 		const k8s_component* comp = state.get_component(component_uid, &t);
 		if(comp && !t.empty())
@@ -900,28 +900,28 @@ bool k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 			for(const auto& label : comp->get_labels())
 			{
 				tags[label.first] = label.second;
-				//g_logger.log("EVENT label: [" + label.first + ':' + label.second + ']', sinsp_logger::SEV_DEBUG);
+				//g_logger.log(FALCO_LOG_SEV_DEBUG, "EVENT label: [" + label.first + ':' + label.second + ']');
 				if(event_scope::check(label.second))
 				{
 					scope.append(" and kubernetes.").append(t).append(".label.").append(label.first).append(1, '=').append(label.second);
 				}
 				else
 				{
-					g_logger.log("K8s invalid scope entry: [" + label.second + ']', sinsp_logger::SEV_WARNING);
+					g_logger.log(FALCO_LOG_SEV_WARNING, "K8s invalid scope entry: [" + label.second + ']');
 				}
 			}*/
 		}
 		else
 		{
-			g_logger.log("K8s event: cannot obtain component (component with UID [" + component_uid +
-						 "] not found), trying to build scope directly from event ...", sinsp_logger::SEV_TRACE);
+			g_logger.log(FALCO_LOG_SEV_TRACE, "K8s event: cannot obtain component (component with UID [" + component_uid +
+						 "] not found), trying to build scope directly from event ...");
 			make_scope(obj, scope);
 		}
 	}
 	else
 	{
-		g_logger.log("K8s event: cannot obtain component UID, trying to build scope directly from event ...",
-					 sinsp_logger::SEV_TRACE);
+		g_logger.log(FALCO_LOG_SEV_TRACE,
+					 "K8s event: cannot obtain component UID, trying to build scope directly from event ...");
 		make_scope(obj, scope);
 	}
 
@@ -961,12 +961,12 @@ void k8s_event_t::make_scope_impl(const Json::Value& obj, std::string comp, even
 		}
 		if(comp_name.empty())
 		{
-			g_logger.log("K8s " + comp + " event detected but " + comp + " name could not be determined. Scope will be empty.", sinsp_logger::SEV_WARNING);
+			g_logger.log(FALCO_LOG_SEV_WARNING, "K8s " + comp + " event detected but " + comp + " name could not be determined. Scope will be empty.");
 		}
 	}
 	else
 	{
-		g_logger.log("K8s event detected but component name was empty. Scope will be empty.", sinsp_logger::SEV_WARNING);
+		g_logger.log(FALCO_LOG_SEV_WARNING, "K8s event detected but component name was empty. Scope will be empty.");
 	}
 }
 

@@ -105,8 +105,8 @@ public:
 			m_data_chunk_wait_us(data_chunk_wait_us)
 
 	{
-		g_logger.log(std::string("Creating Socket handler object for (" + id + ") "
-					 "[" + uri(url).to_string(false) + ']'), sinsp_logger::SEV_DEBUG);
+		g_logger.log(FALCO_LOG_SEV_DEBUG, std::string("Creating Socket handler object for (" + id + ") "
+					 "[" + uri(url).to_string(false) + ']'));
 		m_buf.resize(1024);
 		init_http_parser();
 	}
@@ -249,8 +249,8 @@ public:
 		int iolen = 0;
 		if(m_request.size())
 		{
-			g_logger.log("Socket handler (" + m_id + ") socket=" + std::to_string(m_socket) +
-						 ", m_ssl_connection=" + std::to_string((int64_t)m_ssl_connection), sinsp_logger::SEV_TRACE);
+			g_logger.log(FALCO_LOG_SEV_TRACE, "Socket handler (" + m_id + ") socket=" + std::to_string(m_socket) +
+						 ", m_ssl_connection=" + std::to_string((int64_t)m_ssl_connection));
 			std::string req = m_request;
 			time_t then; time(&then);
 			while(req.size())
@@ -303,7 +303,7 @@ public:
 		{
 			throw sinsp_exception("Socket handler (" + m_id + ") request is empty.");
 		}
-		g_logger.log(m_request, sinsp_logger::SEV_TRACE);
+		g_logger.log(FALCO_LOG_SEV_TRACE, m_request);
 		return;
 
 		connection_error:
@@ -375,7 +375,7 @@ public:
 		case SSL_ERROR_WANT_WRITE:
 			break;
 		default:
-			g_logger.log("SSL Socket handler (" + m_id + ") received=" + std::to_string(err) + " SSL error.",  sinsp_logger::SEV_TRACE);
+			g_logger.log(FALCO_LOG_SEV_TRACE,  "SSL Socket handler (" + m_id + ") received=" + std::to_string(err) + " SSL error.");
 			break;
 		}
 		return processed;
@@ -412,8 +412,8 @@ public:
 		int counter = 0;
 		std::vector<char> buf(1024, 0);
 
-		g_logger.log("Socket handler (" + m_id + ") Retrieving all data in blocking mode ...",
-					 sinsp_logger::SEV_TRACE);
+		g_logger.log(FALCO_LOG_SEV_TRACE,
+					 "Socket handler (" + m_id + ") Retrieving all data in blocking mode ...");
 		init_http_parser();
 		do
 		{
@@ -474,8 +474,8 @@ public:
 			}
 			if(!handled)
 			{
-				g_logger.log("Socket handler: (" + m_id + ") JSON not handled, "
-							 "discarding:\n" + *js, sinsp_logger::SEV_ERROR);
+				g_logger.log(FALCO_LOG_SEV_ERROR, "Socket handler: (" + m_id + ") JSON not handled, "
+							 "discarding:\n" + *js);
 			}
 			js = m_json.erase(js);
 		}
@@ -491,32 +491,32 @@ public:
 			{
 				if(parser_errno <= HPE_UNKNOWN)
 				{
-					g_logger.log("Socket handler (" + m_id + ") http parser error " + std::to_string(parser_errno) + " ([" +
+					g_logger.log(FALCO_LOG_SEV_ERROR,
+								"Socket handler (" + m_id + ") http parser error " + std::to_string(parser_errno) + " ([" +
 								http_errno_name((http_errno) parser_errno) + "]: " +
-								http_errno_description((http_errno) parser_errno) + ')',
-								sinsp_logger::SEV_ERROR);
+								http_errno_description((http_errno) parser_errno) + ')');
 				}
 				else
 				{
-					g_logger.log("Socket handler (" + m_id + ") http parser error " + std::to_string(parser_errno) + ')',
-								 sinsp_logger::SEV_ERROR);
+					g_logger.log(FALCO_LOG_SEV_ERROR,
+								 "Socket handler (" + m_id + ") http parser error " + std::to_string(parser_errno) + ')');
 				}
 				return CONNECTION_CLOSED;
 			}
 			if(m_json.size()) { process_json(); }
 			if(m_http_response >= 400)
 			{
-				g_logger.log("Socket handler (" + m_id + ") response " + std::to_string(m_http_response) +
-							" (" + get_http_reason(m_http_response) + ") received, disconnecting ... ",
-							sinsp_logger::SEV_ERROR);
+				g_logger.log(FALCO_LOG_SEV_ERROR,
+							"Socket handler (" + m_id + ") response " + std::to_string(m_http_response) +
+							" (" + get_http_reason(m_http_response) + ") received, disconnecting ... ");
 				return CONNECTION_CLOSED;
 			}
 			if(m_msg_completed)
 			{
 				if(m_data_buf.size()) // should never happen
 				{
-					g_logger.log("Socket handler (" + m_id + ") response ended with unprocessed data, "
-								 "clearing and sending new request ... ", sinsp_logger::SEV_WARNING);
+					g_logger.log(FALCO_LOG_SEV_WARNING, "Socket handler (" + m_id + ") response ended with unprocessed data, "
+								 "clearing and sending new request ... ");
 					ASSERT(!m_data_buf.size());
 					m_data_buf.clear();
 				}
@@ -528,8 +528,8 @@ public:
 				// set the m_close_on_chunked_end flag to true (default).
 				if(m_close_on_chunked_end)
 				{
-					g_logger.log("Socket handler (" + m_id + ") chunked response ended",
-						     sinsp_logger::SEV_DEBUG);
+					g_logger.log(FALCO_LOG_SEV_DEBUG,
+						     "Socket handler (" + m_id + ") chunked response ended");
 					return CONNECTION_CLOSED;
 				}
 				m_wants_send = true;
@@ -570,17 +570,16 @@ public:
 				}
 				if(iolen > 0) { len_read += iolen; }
 				m_sock_err = errno;
-				sinsp_logger::severity sev = (iolen < 0 && m_sock_err != EAGAIN) ?
-					sinsp_logger::SEV_DEBUG : sinsp_logger::SEV_TRACE;
-				g_logger.log("Socket handler (" + m_id + ") " + m_url.to_string(false) + ", iolen=" +
+				falco_log_severity sev = (iolen < 0 && m_sock_err != EAGAIN) ?
+					FALCO_LOG_SEV_DEBUG : FALCO_LOG_SEV_TRACE;
+				g_logger.log(sev,
+					     "Socket handler (" + m_id + ") " + m_url.to_string(false) + ", iolen=" +
 					     std::to_string(iolen) + ", data=" + std::to_string(len_read) + " bytes, "
-					     "errno=" + std::to_string(m_sock_err) + " (" + strerror(m_sock_err) + ')',
-					     sev);
+					     "errno=" + std::to_string(m_sock_err) + " (" + strerror(m_sock_err) + ')');
 				/* uncomment to see raw HTTP stream data in trace logs
-					if((iolen > 0) && g_logger.get_severity() >= sinsp_logger::SEV_TRACE)
+					if((iolen > 0) && g_logger.get_severity() >= FALCO_LOG_SEV_TRACE)
 					{
-						g_logger.log("Socket handler (" + m_id + "), data --->" + std::string(&m_buf[0], iolen) + "<--- data",
-									 sinsp_logger::SEV_TRACE);
+						g_logger.log(FALCO_LOG_SEV_TRACE, "Socket handler (" + m_id + "), data --->" + std::string(&m_buf[0], iolen) + "<--- data");
 					}
 				*/
 				if(iolen > 0)
@@ -600,33 +599,33 @@ public:
 							int err = SSL_get_error(m_ssl_connection, iolen);
 							if (err != SSL_ERROR_ZERO_RETURN)
 							{
-								g_logger.log("Socket handler(" + m_id + "): SSL conn closed with code "
-									     + std::to_string(err),
-									     sinsp_logger::SEV_DEBUG);
+								g_logger.log(FALCO_LOG_SEV_DEBUG,
+									     "Socket handler(" + m_id + "): SSL conn closed with code "
+									     + std::to_string(err));
 							}
 
 							int sd = SSL_get_shutdown(m_ssl_connection);
 							if(sd == 0)
 							{
-								g_logger.log("Socket handler (" + m_id + "): SSL zero bytes received, "
-											 "but no shutdown state set for [" + m_url.to_string(false) + "]: ",
-											 sinsp_logger::SEV_WARNING);
+								g_logger.log(FALCO_LOG_SEV_WARNING,
+											 "Socket handler (" + m_id + "): SSL zero bytes received, "
+											 "but no shutdown state set for [" + m_url.to_string(false) + "]: ");
 							}
 							if(sd & SSL_RECEIVED_SHUTDOWN)
 							{
-								g_logger.log("Socket handler(" + m_id + "): SSL shutdown from [" +
-											 m_url.to_string(false) + "]: ", sinsp_logger::SEV_TRACE);
+								g_logger.log(FALCO_LOG_SEV_TRACE, "Socket handler(" + m_id + "): SSL shutdown from [" +
+											 m_url.to_string(false) + "]: ");
 							}
 							if(sd & SSL_SENT_SHUTDOWN)
 							{
-								g_logger.log("Socket handler(" + m_id + "): SSL shutdown sent to [" +
-											 m_url.to_string(false) + "]: ", sinsp_logger::SEV_TRACE);
+								g_logger.log(FALCO_LOG_SEV_TRACE, "Socket handler(" + m_id + "): SSL shutdown sent to [" +
+											 m_url.to_string(false) + "]: ");
 							}
 						}
 						else
 						{
-							g_logger.log("Socket handler(" + m_id + "): SSL connection is null",
-											 sinsp_logger::SEV_WARNING);
+							g_logger.log(FALCO_LOG_SEV_WARNING,
+											 "Socket handler(" + m_id + "): SSL connection is null");
 						}
 					}
 					goto connection_closed;
@@ -646,23 +645,23 @@ public:
 						int err = SSL_get_error(m_ssl_connection, iolen);
 						if(err != SSL_ERROR_WANT_READ && err != SSL_ERROR_WANT_WRITE)
 						{
-							g_logger.log("Socket handler(" + m_id + "): received SSL error"
-								     + std::to_string(err),
-								     sinsp_logger::SEV_ERROR);
+							g_logger.log(FALCO_LOG_SEV_ERROR,
+								     "Socket handler(" + m_id + "): received SSL error"
+								     + std::to_string(err));
 							goto connection_error;
 						}
 					}
 				}
 			} while(iolen && (m_sock_err != EAGAIN) && (len_read < m_data_limit));
-			g_logger.log("Socket handler (" + m_id + ") " +
-						 std::to_string(len_read) + " bytes of data received",
-						 sinsp_logger::SEV_TRACE);
+			g_logger.log(FALCO_LOG_SEV_TRACE,
+						 "Socket handler (" + m_id + ") " +
+						 std::to_string(len_read) + " bytes of data received");
 		}
 		catch(const sinsp_exception& ex)
 		{
-			g_logger.log(std::string("Socket handler (" + m_id + ") data receive error [" +
-						 m_url.to_string(false) + "]: ").append(ex.what()),
-						 sinsp_logger::SEV_ERROR);
+			g_logger.log(FALCO_LOG_SEV_ERROR,
+						 std::string("Socket handler (" + m_id + ") data receive error [" +
+						 m_url.to_string(false) + "]: ").append(ex.what()));
 			return m_sock_err;
 		}
 		return 0;
@@ -676,7 +675,7 @@ public:
 			std::string ssl_err = ssl_errors();
 			if(!ssl_err.empty())
 			{
-				g_logger.log(ssl_err, sinsp_logger::SEV_ERROR);
+				g_logger.log(FALCO_LOG_SEV_ERROR, ssl_err);
 			}
 		}
 		return is_error ? m_sock_err : CONNECTION_CLOSED;
@@ -721,9 +720,9 @@ public:
 			}
 			if(it == m_json_filters.end())
 			{
-				g_logger.log("Socket handler (" + m_id + "), [" + m_url.to_string(false) + "] "
+				g_logger.log(FALCO_LOG_SEV_WARNING, "Socket handler (" + m_id + "), [" + m_url.to_string(false) + "] "
 							 "attempt to insert filter before a non-existing filter. "
-							 "Filter will be added to the end of filter list.", sinsp_logger::SEV_WARNING);
+							 "Filter will be added to the end of filter list.");
 			}
 			m_json_filters.insert(it, filter);
 		}
@@ -756,7 +755,7 @@ public:
 							  "attempt to replace non-existing filter");
 	}
 
-	void print_filters(sinsp_logger::severity sev = sinsp_logger::SEV_DEBUG)
+	void print_filters(falco_log_severity sev = FALCO_LOG_SEV_DEBUG)
 	{
 		std::ostringstream filters;
 		filters << std::endl << "Filters:" << std::endl;
@@ -764,7 +763,7 @@ public:
 		{
 			filters << filter << std::endl;
 		}
-		g_logger.log("Socket handler (" + m_id + "), [" + m_url.to_string(false) + "]" + filters.str(), sev);
+		g_logger.log(sev, "Socket handler (" + m_id + "), [" + m_url.to_string(false) + "]" + filters.str());
 	}
 
 	static json_ptr_t try_parse(json_query& jq, const std::string& json, const std::string& filter,
@@ -780,20 +779,20 @@ public:
 				filtered_json = jq.result();
 				if (filtered_json.empty() && !jq.get_error().empty())
 				{
-					g_logger.log("Socket handler (" + id + "), [" +
+					g_logger.log(FALCO_LOG_SEV_DEBUG,
+						     "Socket handler (" + id + "), [" +
 						     url + "] filter result is empty \"" +
 						     jq.get_error() + "\"; JSON: <" +
-						     json + ">, jq filter: <" + filter + '>',
-						     sinsp_logger::SEV_DEBUG);
+						     json + ">, jq filter: <" + filter + '>');
 				}
 			}
 			else
 			{
-				g_logger.log("Socket handler (" + id + "), [" +
+				g_logger.log(FALCO_LOG_SEV_DEBUG,
+					     "Socket handler (" + id + "), [" +
 					     url + "] filter processing error \"" +
 					     jq.get_error() + "\"; JSON: <" +
-					     json + ">, jq filter: <" + filter + '>',
-					     sinsp_logger::SEV_DEBUG);
+					     json + ">, jq filter: <" + filter + '>');
 				return nullptr;
 			}
 		}
@@ -803,19 +802,18 @@ public:
 			if(Json::Reader().parse(filtered_json, *root))
 			{
 				/*
-				if(g_logger.get_severity() >= sinsp_logger::SEV_TRACE)
+				if(g_logger.get_severity() >= FALCO_LOG_SEV_TRACE)
 				{
-					g_logger.log("Socket handler (" + id + "), [" + url + "] "
-								 "filtered JSON: " + json_as_string(*root),
-								 sinsp_logger::SEV_TRACE);
+					g_logger.log(FALCO_LOG_SEV_TRACE, "Socket handler (" + id + "), [" + url + "] "
+								 "filtered JSON: " + json_as_string(*root));
 				}
 				*/
 				return root;
 			}
 		}
 		catch(...) { }
-		g_logger.log("Socket handler (" + id + "), [" + url + "] parsing error; JSON: <" +
-					 json + ">, jq filter: <" + filter + '>', sinsp_logger::SEV_ERROR);
+		g_logger.log(FALCO_LOG_SEV_ERROR, "Socket handler (" + id + "), [" + url + "] parsing error; JSON: <" +
+					 json + ">, jq filter: <" + filter + '>');
 		return nullptr;
 	}
 
@@ -841,10 +839,10 @@ public:
 	{
 		socklen_t optlen = sizeof(m_sock_err);
 		int ret = getsockopt(m_socket, SOL_SOCKET, SO_ERROR, &m_sock_err, &optlen);
-		g_logger.log("Socket handler (" + m_id + ") getsockopt() ret=" +
+		g_logger.log(FALCO_LOG_SEV_TRACE,
+						 "Socket handler (" + m_id + ") getsockopt() ret=" +
 						 std::to_string(ret) + ", m_sock_err=" + std::to_string(m_sock_err) +
-						 " (" + strerror(m_sock_err) + ')',
-						 sinsp_logger::SEV_TRACE);
+						 " (" + strerror(m_sock_err) + ')');
 		if(!ret) { return m_sock_err; }
 		throw sinsp_exception("Socket handler (" + m_id + ") an error occurred "
 					 "trying to obtain socket status while connecting to " +
@@ -920,18 +918,18 @@ private:
 
 			if(preverify_ok && SSL_get_verify_result(ssl) == X509_V_OK)
 			{
-				g_logger.log("Socket handler SSL CA verified: " + std::string(buf),
-							 sinsp_logger::SEV_DEBUG);
+				g_logger.log(FALCO_LOG_SEV_DEBUG,
+							 "Socket handler SSL CA verified: " + std::string(buf));
 				return 1;
 			}
 			else
 			{
 				int err = X509_STORE_CTX_get_error(ctx);
 				int depth = X509_STORE_CTX_get_error_depth(ctx);
-				g_logger.log("Socket handler SSL CA verify error: num=" + std::to_string(err) +
+				g_logger.log(FALCO_LOG_SEV_ERROR, "Socket handler SSL CA verify error: num=" + std::to_string(err) +
 							 ':' + X509_verify_cert_error_string(err) +
 							 ":depth=" + std::to_string(depth) +
-							 ':' + std::string(buf), sinsp_logger::SEV_ERROR);
+							 ':' + std::string(buf));
 				return 0;
 			}
 		}
@@ -940,8 +938,8 @@ private:
 
 	static int ssl_no_verify_callback(int, X509_STORE_CTX* ctx)
 	{
-		g_logger.log("Socket handler SSL CA verification disabled, certificate accepted.",
-					 sinsp_logger::SEV_DEBUG);
+		g_logger.log(FALCO_LOG_SEV_DEBUG,
+					 "Socket handler SSL CA verification disabled, certificate accepted.");
 		return 1;
 	}
 
@@ -993,14 +991,14 @@ private:
 #endif
 			if(!method)
 			{
-				g_logger.log("Socket handler (" + m_id + "): Can't initialize SSL method\n" + ssl_errors(),
-							 sinsp_logger::SEV_ERROR);
+				g_logger.log(FALCO_LOG_SEV_ERROR,
+							 "Socket handler (" + m_id + "): Can't initialize SSL method\n" + ssl_errors());
 			}
 			m_ssl_context = SSL_CTX_new(method);
 			if(!m_ssl_context)
 			{
-				g_logger.log("Socket handler (" + m_id + "): Can't initialize SSL context\n" + ssl_errors(),
-							 sinsp_logger::SEV_ERROR);
+				g_logger.log(FALCO_LOG_SEV_ERROR,
+							 "Socket handler (" + m_id + "): Can't initialize SSL context\n" + ssl_errors());
 				return;
 			}
 
@@ -1022,12 +1020,12 @@ private:
 											  "(Verify Peer enabled but no CA certificate specified).");
 					}
 					SSL_CTX_set_verify(m_ssl_context, SSL_VERIFY_PEER, ssl_verify_callback);
-					g_logger.log("Socket handler (" + m_id + "): CA verify set to PEER", sinsp_logger::SEV_TRACE);
+					g_logger.log(FALCO_LOG_SEV_TRACE, "Socket handler (" + m_id + "): CA verify set to PEER");
 				}
 				else
 				{
 					SSL_CTX_set_verify(m_ssl_context, SSL_VERIFY_NONE, ssl_no_verify_callback);
-					g_logger.log("Socket handler (" + m_id + "): CA verify set to NONE", sinsp_logger::SEV_TRACE);
+					g_logger.log(FALCO_LOG_SEV_TRACE, "Socket handler (" + m_id + "): CA verify set to NONE");
 				}
 
 				const std::string& cert = m_ssl->cert();
@@ -1041,8 +1039,8 @@ private:
 					}
 					else
 					{
-						g_logger.log("Socket handler (" + m_id + "): using SSL certificate from " + cert,
-									 sinsp_logger::SEV_TRACE);
+						g_logger.log(FALCO_LOG_SEV_TRACE,
+									 "Socket handler (" + m_id + "): using SSL certificate from " + cert);
 					}
 					const std::string& key = m_ssl->key();
 					if(!key.empty())
@@ -1064,7 +1062,7 @@ private:
 						}
 						else
 						{
-							g_logger.log("Socket handler (" + m_id + "): using SSL private key from " + key, sinsp_logger::SEV_TRACE);
+							g_logger.log(FALCO_LOG_SEV_TRACE, "Socket handler (" + m_id + "): using SSL private key from " + key);
 						}
 
 						if(!SSL_CTX_check_private_key(m_ssl_context))
@@ -1075,8 +1073,8 @@ private:
 						}
 						else
 						{
-							g_logger.log("Socket handler (" + m_id + "): SSL private key " + key + " matches public certificate " + cert,
-										 sinsp_logger::SEV_TRACE);
+							g_logger.log(FALCO_LOG_SEV_TRACE,
+										 "Socket handler (" + m_id + "): SSL private key " + key + " matches public certificate " + cert);
 						}
 					}
 					else
@@ -1087,7 +1085,7 @@ private:
 				}
 				else
 				{
-					g_logger.log("Socket handler (" + m_id + "): SSL public certificate not provided.", sinsp_logger::SEV_TRACE);
+					g_logger.log(FALCO_LOG_SEV_TRACE, "Socket handler (" + m_id + "): SSL public certificate not provided.");
 				}
 			}
 		}
@@ -1178,8 +1176,8 @@ private:
 
 	bool try_connect()
 	{
-		g_logger.log("Socket handler (" + m_id + ") try_connect() entry, m_connecting=" + std::to_string(m_connecting) +
-						 ", m_connected=" + std::to_string(m_connected), sinsp_logger::SEV_TRACE);
+		g_logger.log(FALCO_LOG_SEV_TRACE, "Socket handler (" + m_id + ") try_connect() entry, m_connecting=" + std::to_string(m_connecting) +
+						 ", m_connected=" + std::to_string(m_connected));
 		if(m_connected) { return true; }
 		if(m_socket == -1)
 		{
@@ -1207,12 +1205,12 @@ private:
 			}
 		}
 
-		g_logger.log("Socket handler (" + m_id + ") try_connect() middle, m_connecting=" + std::to_string(m_connecting) +
-						 ", m_connected=" + std::to_string(m_connected), sinsp_logger::SEV_TRACE);
+		g_logger.log(FALCO_LOG_SEV_TRACE, "Socket handler (" + m_id + ") try_connect() middle, m_connecting=" + std::to_string(m_connecting) +
+						 ", m_connected=" + std::to_string(m_connected));
 		if(!m_connected)
 		{
-			g_logger.log("Socket handler (" + m_id + ") connecting to " + m_url.to_string(false) +
-						 " (socket=" + std::to_string(m_socket) + ')', sinsp_logger::SEV_DEBUG);
+			g_logger.log(FALCO_LOG_SEV_DEBUG, "Socket handler (" + m_id + ") connecting to " + m_url.to_string(false) +
+						 " (socket=" + std::to_string(m_socket) + ')');
 			if(!m_sa || !m_sa_len)
 			{
 				std::ostringstream os;
@@ -1260,13 +1258,13 @@ private:
 					{
 						m_connecting = false;
 						m_connected = true;
-						g_logger.log("Socket handler (" + m_id + "): "
-									 "SSL connected to " + m_url.get_host(),
-									 sinsp_logger::SEV_INFO);
-						g_logger.log("Socket handler (" + m_id + "): "
+						g_logger.log(FALCO_LOG_SEV_INFO,
+									 "Socket handler (" + m_id + "): "
+									 "SSL connected to " + m_url.get_host());
+						g_logger.log(FALCO_LOG_SEV_DEBUG,
+									 "Socket handler (" + m_id + "): "
 									 "SSL socket=" + std::to_string(m_socket) + ", "
-									 "local port=" + std::to_string(get_local_port()),
-									 sinsp_logger::SEV_DEBUG);
+									 "local port=" + std::to_string(get_local_port()));
 					}
 					else
 					{
@@ -1311,8 +1309,8 @@ private:
 				}
 			}
 
-			g_logger.log("Socket handler (" + m_id + "): Connected: socket=" + std::to_string(m_socket) +
-						 ", collecting data from " + m_url.to_string(false) + m_path, sinsp_logger::SEV_DEBUG);
+			g_logger.log(FALCO_LOG_SEV_DEBUG, "Socket handler (" + m_id + "): Connected: socket=" + std::to_string(m_socket) +
+						 ", collecting data from " + m_url.to_string(false) + m_path);
 
 			if(m_url.is_secure() && m_ssl && m_ssl->verify_peer())
 			{
@@ -1358,8 +1356,8 @@ private:
 
 				if (!m_ares_cb_res.call) // first call, call async resolver
 				{
-					g_logger.log("Socket handler (" + m_id + ") resolving " + m_url.get_host(),
-								 sinsp_logger::SEV_TRACE);
+					g_logger.log(FALCO_LOG_SEV_TRACE,
+								 "Socket handler (" + m_id + ") resolving " + m_url.get_host());
 
 					ares_init_options(&m_ares_channel, &m_ares_opts, 0);
 					ares_gethostbyname(m_ares_channel, m_url.get_host().c_str(), AF_INET, ares_cb, &m_ares_cb_res);
@@ -1383,9 +1381,9 @@ private:
 				{
 					if (m_ares_cb_res.address.empty())
 					{
-						g_logger.log("Socket handler (" + m_id + "): " + m_url.get_host() +
-										 " address not resolved yet.",
-									 sinsp_logger::SEV_TRACE);
+						g_logger.log(FALCO_LOG_SEV_TRACE,
+									 "Socket handler (" + m_id + "): " + m_url.get_host() +
+										 " address not resolved yet.");
 						return false;
 					}
 					m_address = m_ares_cb_res.address;
@@ -1448,14 +1446,14 @@ private:
 	{
 		if(m_socket != -1)
 		{
-			g_logger.log("Socket handler (" + m_id + ") closing connection to " +
-						 m_url.to_string(false) + m_path, sinsp_logger::SEV_DEBUG);
+			g_logger.log(FALCO_LOG_SEV_DEBUG, "Socket handler (" + m_id + ") closing connection to " +
+						 m_url.to_string(false) + m_path);
 			int ret = close(m_socket);
 			if(ret < 0)
 			{
-				g_logger.log("Socket handler (" + m_id + ") connection [" +
+				g_logger.log(FALCO_LOG_SEV_ERROR, "Socket handler (" + m_id + ") connection [" +
 							 m_url.to_string(false) + m_path + "] error closing socket: " +
-							 strerror(errno), sinsp_logger::SEV_ERROR);
+							 strerror(errno));
 			}
 			m_socket = -1;
 		}
@@ -1521,10 +1519,10 @@ private:
 							}
 							/*else
 							{
-								if(g_logger.get_severity() >= sinsp_logger::SEV_TRACE)
+								if(g_logger.get_severity() >= FALCO_LOG_SEV_TRACE)
 								{
-									g_logger.log("Socket handler (http_body_callback) data received, will be parsed on response end:" +
-												 *parser_data->m_data_buf, sinsp_logger::SEV_TRACE);
+									g_logger.log(FALCO_LOG_SEV_TRACE, "Socket handler (http_body_callback) data received, will be parsed on response end:" +
+												 *parser_data->m_data_buf);
 								}
 							}*/
 						}
@@ -1559,7 +1557,7 @@ private:
 						}
 						else
 						{
-							g_logger.log("Initial state fetch completed, but no newline found!", sinsp_logger::SEV_ERROR);
+							g_logger.log(FALCO_LOG_SEV_ERROR, "Initial state fetch completed, but no newline found!");
 						}
 						*(parser_data->m_fetching_state) = false;
 					}

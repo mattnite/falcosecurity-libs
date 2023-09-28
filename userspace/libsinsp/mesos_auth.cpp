@@ -77,7 +77,7 @@ void mesos_auth::authenticate()
 			if(parse_ok && response_obj.isMember("token"))
 			{
 				m_token = response_obj["token"].asString();
-				g_logger.format(sinsp_logger::SEV_DEBUG, "Mesos authenticated with token=%s", m_token.c_str());
+				g_logger.format(FALCO_LOG_SEV_DEBUG, "Mesos authenticated with token=%s", m_token.c_str());
 			}
 			else if (!parse_ok)
 			{
@@ -102,7 +102,7 @@ void mesos_auth::authenticate()
 			m_auth_uri.to_string() + ": " +
 			e.what();
 
-		g_logger.log(errstr, sinsp_logger::SEV_ERROR);
+		g_logger.log(FALCO_LOG_SEV_ERROR, errstr);
 
 		g_json_error_log.log("", errstr, sinsp_utils::get_current_time_ns(), m_auth_uri.to_string());
 	}
@@ -118,7 +118,7 @@ void mesos_auth::refresh_token()
 
 		if(difftime(now, m_last_token_refresh_s) > m_token_refresh_interval)
 		{
-			g_logger.format(sinsp_logger::SEV_DEBUG, "Regenerating Mesos Auth token");
+			g_logger.format(FALCO_LOG_SEV_DEBUG, "Regenerating Mesos Auth token");
 			authenticate();
 		}
 	}
