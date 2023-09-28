@@ -1,4 +1,4 @@
-**Does this PR downstream OSS commits from falcosecurity/libs?**
+**Does this PR downstream OSS commuts from falcosecurity/libs?**
 
 <!--
 If yes, report the falcosecurity/libs pull request introducting commits:

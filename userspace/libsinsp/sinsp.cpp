@@ -46,19 +46,15 @@ limitations under the License.
 #if defined(HAS_CAPTURE)
 #include <curl/curl.h>
 #endif // defined(HAS_CAPTURE)
-#else  // !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
-struct k8s_api_handler
-{
-}; // note: makes the unique_ptr static asserts happy
-#endif // !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
+#else // !defined(MINIMAL_BUILD)
+struct k8s_api_handler{}; // note: makes the unique_ptr static asserts happy
+#endif // !defined(MINIMAL_BUILD)
 #endif // !defined(CYGWING_AGENT)
 
 #ifdef GATHER_INTERNAL_STATS
 #include "stats.h"
-#else  // GATHER_INTERNAL_STATS
-struct sinsp_stats
-{
-}; // note: makes the unique_ptr static asserts happy
+#else // GATHER_INTERNAL_STATS
+struct sinsp_stats{}; // note: makes the unique_ptr static asserts happy
 #endif // GATHER_INTERNAL_STATS
 
 #ifdef HAS_ANALYZER
@@ -67,22 +63,29 @@ struct sinsp_stats
 #include "tracer_emitter.h"
 #endif
 
-void on_new_entry_from_proc(void* context, int64_t tid, scap_threadinfo* tinfo, scap_fdinfo* fdinfo);
+void on_new_entry_from_proc(void* context, int64_t tid, scap_threadinfo* tinfo,
+							scap_fdinfo* fdinfo);
 
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp implementation
 ///////////////////////////////////////////////////////////////////////////////
 std::atomic<int> sinsp::instance_count{0};
 
-sinsp::sinsp(bool static_container, const std::string& static_id, const std::string& static_name,
-	     const std::string& static_image):
+sinsp::sinsp(bool static_container, const std::string &static_id, const std::string &static_name, const std::string &static_image) :
 	m_external_event_processor(),
-	m_evt(this), m_lastevent_ts(0), m_host_root(scap_get_host_root()),
-	m_container_manager(this, static_container, static_id, static_name, static_image), m_usergroup_manager(this),
-	m_k8s_api_handler(nullptr), m_k8s_ext_handler(nullptr), m_stats(nullptr), m_suppressed_comms(), m_inited(false)
+	m_evt(this),
+	m_lastevent_ts(0),
+	m_host_root(scap_get_host_root()),
+	m_container_manager(this, static_container, static_id, static_name, static_image),
+	m_usergroup_manager(this),
+	m_k8s_api_handler(nullptr),
+	m_k8s_ext_handler(nullptr),
+	m_stats(nullptr),
+	m_suppressed_comms(),
+	m_inited(false)
 {
 	++instance_count;
-#if !defined(MINIMAL_BUILD) && !defined(CYGWING_AGENT) && !defined(__EMSCRIPTEN__) && defined(HAS_CAPTURE)
+#if !defined(MINIMAL_BUILD) && !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
 	// used by mesos and container_manager
 	curl_global_init(CURL_GLOBAL_DEFAULT);
 #endif
@@ -146,7 +149,7 @@ sinsp::sinsp(bool static_container, const std::string& static_id, const std::str
 	m_meinfo.m_piscapevt->type = PPME_PROCINFO_E;
 	m_meinfo.m_piscapevt->len = evlen;
 	m_meinfo.m_piscapevt->nparams = 2;
-	uint16_t* lens = (uint16_t*)((char*)m_meinfo.m_piscapevt + sizeof(struct ppm_evt_hdr));
+	uint16_t* lens = (uint16_t*)((char *)m_meinfo.m_piscapevt + sizeof(struct ppm_evt_hdr));
 	lens[0] = 8;
 	lens[1] = 8;
 	m_meinfo.m_piscapevt_vals = (uint64_t*)(lens + 2);
@@ -228,7 +231,7 @@ sinsp::~sinsp()
 	delete m_mesos_client;
 #ifdef HAS_CAPTURE
 	curl_global_cleanup();
-	if(--instance_count == 0)
+	if (--instance_count == 0)
 	{
 		sinsp_dns_manager::get().cleanup();
 	}
@@ -236,11 +239,14 @@ sinsp::~sinsp()
 #endif
 }
 
-void sinsp::add_protodecoders() { m_parser->add_protodecoder("syslog"); }
+void sinsp::add_protodecoders()
+{
+	m_parser->add_protodecoder("syslog");
+}
 
 void sinsp::enable_tracers_capture()
 {
-#if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT) && !defined(_WIN32)
+#if defined(HAS_CAPTURE) && ! defined(CYGWING_AGENT) && ! defined(_WIN32)
 	if(!m_is_tracers_capture_enabled)
 	{
 		if(is_live() && m_h != NULL)
@@ -258,10 +264,13 @@ void sinsp::enable_tracers_capture()
 
 bool sinsp::is_initialstate_event(scap_evt* pevent)
 {
-	return pevent->type == PPME_CONTAINER_E || pevent->type == PPME_CONTAINER_JSON_E ||
-	       pevent->type == PPME_CONTAINER_JSON_2_E || pevent->type == PPME_USER_ADDED_E ||
-	       pevent->type == PPME_USER_DELETED_E || pevent->type == PPME_GROUP_ADDED_E ||
-	       pevent->type == PPME_GROUP_DELETED_E;
+	return  pevent->type == PPME_CONTAINER_E ||
+			pevent->type == PPME_CONTAINER_JSON_E ||
+			pevent->type == PPME_CONTAINER_JSON_2_E ||
+			pevent->type == PPME_USER_ADDED_E ||
+			pevent->type == PPME_USER_DELETED_E ||
+			pevent->type == PPME_GROUP_ADDED_E ||
+			pevent->type == PPME_GROUP_DELETED_E;
 }
 
 void sinsp::consume_initialstate_events()
@@ -270,7 +279,7 @@ void sinsp::consume_initialstate_events()
 	uint16_t pcpuid;
 	sinsp_evt* tevt;
 
-	if(m_external_event_processor)
+	if (m_external_event_processor)
 	{
 		m_external_event_processor->on_capture_start();
 	}
@@ -326,7 +335,7 @@ void sinsp::init()
 	// Retrieve agent information
 	//
 	m_agent_info = scap_get_agent_info(m_h);
-	if(m_agent_info == NULL)
+	if (m_agent_info == NULL)
 	{
 		ASSERT(false);
 	}
@@ -398,7 +407,7 @@ void sinsp::init()
 	m_thread_manager->fix_sockets_coming_from_proc();
 
 	// If we are in capture, this is already called by consume_initialstate_events
-	if(!is_capture() && m_external_event_processor)
+	if (!is_capture() && m_external_event_processor)
 	{
 		m_external_event_processor->on_capture_start();
 	}
@@ -418,7 +427,7 @@ void sinsp::init()
 	if(increased_snaplen_port_range_set())
 	{
 		set_fullcapture_port_range(m_increased_snaplen_port_range.range_start,
-					   m_increased_snaplen_port_range.range_end);
+		                           m_increased_snaplen_port_range.range_end);
 	}
 #endif
 
@@ -441,7 +450,10 @@ void sinsp::init()
 	m_inited = true;
 }
 
-void sinsp::set_import_users(bool import_users) { m_usergroup_manager.m_import_users = import_users; }
+void sinsp::set_import_users(bool import_users)
+{
+	m_usergroup_manager.m_import_users = import_users;
+}
 
 /*=============================== OPEN METHODS ===============================*/
 
@@ -492,21 +504,19 @@ void sinsp::open_common(scap_open_args* oargs)
 	// that capability. Meta-events are considered only during live captures,
 	// because offline captures will have the async events already encoded
 	// in the event stream.
-	if(!is_capture())
+	if (!is_capture())
 	{
-		// note(jasondellaluce,rohith-raju): for now the emscripten build does not support
-		// tbb queues, so async event production is disabled
-#ifndef __EMSCRIPTEN__
-		for(auto& p : m_plugin_manager->plugins())
+		for (auto& p : m_plugin_manager->plugins())
 		{
-			if(p->caps() & CAP_ASYNC)
+			if (p->caps() & CAP_ASYNC)
 			{
-				auto res = p->set_async_event_handler(
-					[this](auto& p, auto e) { this->handle_plugin_async_event(p, std::move(e)); });
-				if(!res)
+				auto res = p->set_async_event_handler([this](auto& p, auto e){
+					this->handle_plugin_async_event(p, std::move(e));
+				});
+				if (!res)
 				{
-					throw sinsp_exception("can't set async event handler for plugin '" + p->name() +
-							      "' : " + p->get_last_error());
+					throw sinsp_exception("can't set async event handler for plugin '"
+						+ p->name() + "' : " + p->get_last_error());
 				}
 			}
 		}
@@ -524,27 +534,28 @@ scap_open_args sinsp::factory_open_args(const char* engine_name, scap_mode_t sca
 void sinsp::mark_ppm_sc_of_interest(ppm_sc_code ppm_sc, bool enable)
 {
 	/* This API must be used only after the initialization phase. */
-	if(!m_inited)
+	if (!m_inited)
 	{
 		throw sinsp_exception("you cannot use this method before opening the inspector!");
 	}
-	if(ppm_sc >= PPM_SC_MAX)
+	if (ppm_sc >= PPM_SC_MAX)
 	{
 		throw sinsp_exception("inexistent ppm_sc code: " + std::to_string(ppm_sc));
 	}
 	int ret = scap_set_ppm_sc(m_h, ppm_sc, enable);
-	if(ret != SCAP_SUCCESS)
+	if (ret != SCAP_SUCCESS)
 	{
 		throw sinsp_exception(scap_getlasterr(m_h));
 	}
 }
 
-static void fill_ppm_sc_of_interest(scap_open_args* oargs, const libsinsp::events::set<ppm_sc_code>& ppm_sc_of_interest)
+
+static void fill_ppm_sc_of_interest(scap_open_args *oargs, const libsinsp::events::set<ppm_sc_code> &ppm_sc_of_interest)
 {
-	for(int i = 0; i < PPM_SC_MAX; i++)
+	for (int i = 0; i < PPM_SC_MAX; i++)
 	{
 		/* If the set is empty, fallback to all interesting syscalls */
-		if(ppm_sc_of_interest.empty())
+		if (ppm_sc_of_interest.empty())
 		{
 			oargs->ppm_sc_of_interest.ppm_sc[i] = true;
 		}
@@ -555,8 +566,7 @@ static void fill_ppm_sc_of_interest(scap_open_args* oargs, const libsinsp::event
 	}
 }
 
-void sinsp::open_kmod(unsigned long driver_buffer_bytes_dim,
-		      const libsinsp::events::set<ppm_sc_code>& ppm_sc_of_interest)
+void sinsp::open_kmod(unsigned long driver_buffer_bytes_dim, const libsinsp::events::set<ppm_sc_code> &ppm_sc_of_interest)
 {
 	scap_open_args oargs = factory_open_args(KMOD_ENGINE, SCAP_MODE_LIVE);
 
@@ -570,14 +580,12 @@ void sinsp::open_kmod(unsigned long driver_buffer_bytes_dim,
 	open_common(&oargs);
 }
 
-void sinsp::open_bpf(const std::string& bpf_path, unsigned long driver_buffer_bytes_dim,
-		     const libsinsp::events::set<ppm_sc_code>& ppm_sc_of_interest)
+void sinsp::open_bpf(const std::string& bpf_path, unsigned long driver_buffer_bytes_dim, const libsinsp::events::set<ppm_sc_code> &ppm_sc_of_interest)
 {
 	/* Validate the BPF path. */
 	if(bpf_path.empty())
 	{
-		throw sinsp_exception(
-			"When you use the 'BPF' engine you need to provide a path to the bpf object file.");
+		throw sinsp_exception("When you use the 'BPF' engine you need to provide a path to the bpf object file.");
 	}
 
 	scap_open_args oargs = factory_open_args(BPF_ENGINE, SCAP_MODE_LIVE);
@@ -628,8 +636,7 @@ void sinsp::open_savefile(const std::string& filename, int fd)
 	{
 		if(filename.empty())
 		{
-			throw sinsp_exception(
-				"When you use the 'savefile' engine you need to provide a path to the file.");
+			throw sinsp_exception("When you use the 'savefile' engine you need to provide a path to the file.");
 		}
 
 		params.fname = filename.c_str();
@@ -664,8 +671,7 @@ void sinsp::open_gvisor(const std::string& config_path, const std::string& root_
 {
 	if(config_path.empty())
 	{
-		throw sinsp_exception(
-			"When you use the 'gvisor' engine you need to provide a path to the config file.");
+		throw sinsp_exception("When you use the 'gvisor' engine you need to provide a path to the config file.");
 	}
 
 	scap_open_args oargs = factory_open_args(GVISOR_ENGINE, SCAP_MODE_LIVE);
@@ -680,8 +686,7 @@ void sinsp::open_gvisor(const std::string& config_path, const std::string& root_
 	set_get_procs_cpu_from_driver(false);
 }
 
-void sinsp::open_modern_bpf(unsigned long driver_buffer_bytes_dim, uint16_t cpus_for_each_buffer, bool online_only,
-			    const libsinsp::events::set<ppm_sc_code>& ppm_sc_of_interest)
+void sinsp::open_modern_bpf(unsigned long driver_buffer_bytes_dim, uint16_t cpus_for_each_buffer, bool online_only, const libsinsp::events::set<ppm_sc_code> &ppm_sc_of_interest)
 {
 	scap_open_args oargs = factory_open_args(MODERN_BPF_ENGINE, SCAP_MODE_LIVE);
 
@@ -720,19 +725,22 @@ bool sinsp::check_current_engine(const std::string& engine_name)
 
 /*=============================== Engine related ===============================*/
 
-std::string sinsp::generate_gvisor_config(std::string socket_path) { return gvisor_config::generate(socket_path); }
+std::string sinsp::generate_gvisor_config(std::string socket_path)
+{
+	return gvisor_config::generate(socket_path);
+}
 
-int64_t sinsp::get_file_size(const std::string& fname, char* error)
+int64_t sinsp::get_file_size(const std::string& fname, char *error)
 {
 	static std::string err_str = "Could not determine capture file size: ";
 	std::string errdesc;
 #ifdef _WIN32
-	LARGE_INTEGER li = {0};
-	HANDLE fh = CreateFile(fname.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
-			       FILE_ATTRIBUTE_READONLY, NULL);
-	if(fh != INVALID_HANDLE_VALUE)
+	LARGE_INTEGER li = { 0 };
+	HANDLE fh = CreateFile(fname.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL,
+		OPEN_EXISTING, FILE_ATTRIBUTE_READONLY, NULL);
+	if (fh != INVALID_HANDLE_VALUE)
 	{
-		if(0 != GetFileSizeEx(fh, &li))
+		if (0 != GetFileSizeEx(fh, &li))
 		{
 			CloseHandle(fh);
 			return li.QuadPart;
@@ -742,13 +750,12 @@ int64_t sinsp::get_file_size(const std::string& fname, char* error)
 	}
 #else
 	struct stat st;
-	if(0 == stat(fname.c_str(), &st))
+	if (0 == stat(fname.c_str(), &st))
 	{
 		return st.st_size;
 	}
 #endif
-	if(errdesc.empty())
-		errdesc = get_error_desc(err_str);
+	if(errdesc.empty()) errdesc = get_error_desc(err_str);
 	strlcpy(error, errdesc.c_str(), SCAP_LASTERR_SIZE);
 	return -1;
 }
@@ -787,11 +794,11 @@ std::string sinsp::get_error_desc(const std::string& msg)
 	DWORD flg = FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS;
 	LPTSTR msg_buf = 0;
 	if(FormatMessageA(flg, 0, err_no, 0, (LPTSTR)&msg_buf, 0, NULL))
-		if(msg_buf)
-		{
-			errstr.append(msg_buf, strlen(msg_buf));
-			LocalFree(msg_buf);
-		}
+	if(msg_buf)
+	{
+		errstr.append(msg_buf, strlen(msg_buf));
+		LocalFree(msg_buf);
+	}
 #else
 	char* msg_buf = strerror(errno); // first, so error is not wiped out by intermediate calls
 	std::string errstr = msg;
@@ -828,29 +835,25 @@ void sinsp::close()
 	}
 
 	// unset the meta-event callback to all plugins that support it
-	if(!is_capture() && m_mode != SCAP_MODE_NONE)
+	if (!is_capture() && m_mode != SCAP_MODE_NONE)
 	{
 		std::string err;
-		// note(jasondellaluce,rohith-raju): for now the emscripten build does not support
-		// tbb queues, so async event production is disabled
-#ifndef __EMSCRIPTEN__
-		for(auto& p : m_plugin_manager->plugins())
+		for (auto& p : m_plugin_manager->plugins())
 		{
-			if(p->caps() & CAP_ASYNC)
+			if (p->caps() & CAP_ASYNC)
 			{
 				// collect errors but let's make sure we reset all the handlers
 				// event in case of one failure.
 				auto res = p->set_async_event_handler(nullptr);
-				if(!res)
+				if (!res)
 				{
 					err += err.empty() ? "" : ", ";
-					err += "can't reset async event handler for plugin '" + p->name() +
-					       "' : " + p->get_last_error();
+					err += "can't reset async event handler for plugin '"
+						+ p->name() + "' : " + p->get_last_error();
 				}
 			}
 		}
-#endif
-		if(!err.empty())
+		if (!err.empty())
 		{
 			throw sinsp_exception(err);
 		}
@@ -923,7 +926,10 @@ void sinsp::autodump_stop()
 	m_is_dumping = false;
 }
 
-void sinsp::on_new_entry_from_proc(void* context, int64_t tid, scap_threadinfo* tinfo, scap_fdinfo* fdinfo)
+void sinsp::on_new_entry_from_proc(void* context,
+								   int64_t tid,
+								   scap_threadinfo* tinfo,
+								   scap_fdinfo* fdinfo)
 {
 	ASSERT(tinfo != NULL);
 
@@ -963,8 +969,7 @@ void sinsp::on_new_entry_from_proc(void* context, int64_t tid, scap_threadinfo* 
 		{
 			thread_added = m_thread_manager->add_thread(newti, true);
 		}
-		if(!thread_added)
-		{
+		if (!thread_added) {
 			delete newti;
 		}
 	}
@@ -977,16 +982,14 @@ void sinsp::on_new_entry_from_proc(void* context, int64_t tid, scap_threadinfo* 
 			sinsp_threadinfo* newti = build_threadinfo();
 			newti->init(tinfo);
 
-			if(!m_thread_manager->add_thread(newti, true))
-			{
+			if (!m_thread_manager->add_thread(newti, true)) {
 				ASSERT(false);
 				delete newti;
 				return;
 			}
 
 			sinsp_tinfo = find_thread(tid, true);
-			if(!sinsp_tinfo)
-			{
+			if (!sinsp_tinfo) {
 				ASSERT(false);
 				return;
 			}
@@ -997,7 +1000,10 @@ void sinsp::on_new_entry_from_proc(void* context, int64_t tid, scap_threadinfo* 
 	}
 }
 
-void on_new_entry_from_proc(void* context, int64_t tid, scap_threadinfo* tinfo, scap_fdinfo* fdinfo)
+void on_new_entry_from_proc(void* context,
+							int64_t tid,
+							scap_threadinfo* tinfo,
+							scap_fdinfo* fdinfo)
 {
 	sinsp* _this = (sinsp*)context;
 	_this->on_new_entry_from_proc(context, tid, tinfo, fdinfo);
@@ -1005,10 +1011,10 @@ void on_new_entry_from_proc(void* context, int64_t tid, scap_threadinfo* tinfo, 
 
 void sinsp::import_thread_table()
 {
-	scap_threadinfo* pi;
-	scap_threadinfo* tpi;
+	scap_threadinfo *pi;
+	scap_threadinfo *tpi;
 
-	scap_threadinfo* table = scap_get_proc_table(m_h);
+	scap_threadinfo *table = scap_get_proc_table(m_h);
 
 	//
 	// Scan the scap table and add the threads to our list
@@ -1027,7 +1033,10 @@ void sinsp::import_ifaddr_list()
 	m_network_interfaces->import_interfaces(scap_get_ifaddr_list(m_h));
 }
 
-const sinsp_network_interfaces& sinsp::get_ifaddr_list() { return m_network_interfaces; }
+sinsp_network_interfaces* sinsp::get_ifaddr_list()
+{
+	return m_network_interfaces;
+}
 
 void sinsp::import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo)
 {
@@ -1044,8 +1053,7 @@ void sinsp::import_user_list()
 	{
 		for(j = 0; j < ul->nusers; j++)
 		{
-			m_usergroup_manager.add_user("", -1, ul->users[j].uid, ul->users[j].gid, ul->users[j].name,
-						     ul->users[j].homedir, ul->users[j].shell);
+			m_usergroup_manager.add_user("", -1, ul->users[j].uid, ul->users[j].gid, ul->users[j].name, ul->users[j].homedir, ul->users[j].shell);
 		}
 
 		for(j = 0; j < ul->ngroups; j++)
@@ -1068,9 +1076,12 @@ void sinsp::refresh_ifaddr_list()
 #endif
 }
 
-bool should_drop(sinsp_evt* evt, bool* stopped, bool* switched);
+bool should_drop(sinsp_evt *evt, bool* stopped, bool* switched);
 
-void sinsp::add_meta_event(sinsp_evt* metaevt) { m_metaevt = metaevt; }
+void sinsp::add_meta_event(sinsp_evt *metaevt)
+{
+	m_metaevt = metaevt;
+}
 
 void sinsp::add_meta_event_callback(meta_event_callback cback, void* data)
 {
@@ -1078,7 +1089,10 @@ void sinsp::add_meta_event_callback(meta_event_callback cback, void* data)
 	m_meta_event_callback_data = data;
 }
 
-void sinsp::remove_meta_event_callback() { m_meta_event_callback = NULL; }
+void sinsp::remove_meta_event_callback()
+{
+	m_meta_event_callback = NULL;
+}
 
 void schedule_next_threadinfo_evt(sinsp* _this, void* data)
 {
@@ -1131,7 +1145,7 @@ void sinsp::restart_capture()
 
 	// Restart the scap capture, which also trigger a re-initialization of
 	// scap's internal state.
-	if(scap_restart_capture(m_h) != SCAP_SUCCESS)
+	if (scap_restart_capture(m_h) != SCAP_SUCCESS)
 	{
 		throw sinsp_exception(std::string("scap error: ") + scap_getlasterr(m_h));
 	}
@@ -1197,7 +1211,7 @@ void sinsp::get_procs_cpu_from_driver(uint64_t ts)
 	}
 }
 
-int32_t sinsp::next(OUT sinsp_evt** puevt)
+int32_t sinsp::next(OUT sinsp_evt **puevt)
 {
 	sinsp_evt* evt;
 	int32_t res;
@@ -1216,8 +1230,7 @@ int32_t sinsp::next(OUT sinsp_evt** puevt)
 			m_meta_event_callback(this, m_meta_event_callback_data);
 		}
 	}
-#ifndef __EMSCRIPTEN__
-	else if(m_pending_state_evts.try_pop(m_state_evt))
+	else if (m_pending_state_evts.try_pop(m_state_evt))
 	{
 		res = SCAP_SUCCESS;
 		evt = m_state_evt.get();
@@ -1225,7 +1238,7 @@ int32_t sinsp::next(OUT sinsp_evt** puevt)
 		//       assigned to (uint64_t)-1 libsinsp is allowed to
 		//       change that value, otherwise will keep the one
 		//       previously assigned.
-		if(evt->m_pevt->ts == (uint64_t)-1)
+		if(evt->m_pevt->ts == (uint64_t) - 1)
 		{
 			evt->m_pevt->ts = get_new_ts();
 		}
@@ -1251,7 +1264,7 @@ int32_t sinsp::next(OUT sinsp_evt** puevt)
 		//
 		// Get the event from libscap
 		//
-		if(m_replay_scap_evt != NULL)
+		if (m_replay_scap_evt != NULL)
 		{
 			// Replay the last event, if we saved one
 			res = SCAP_SUCCESS;
@@ -1259,7 +1272,7 @@ int32_t sinsp::next(OUT sinsp_evt** puevt)
 			evt->m_cpuid = m_replay_scap_cpuid;
 			m_replay_scap_evt = NULL;
 		}
-		else
+		else 
 		{
 			// If no last event was saved, invoke
 			// the actual scap_next
@@ -1270,7 +1283,7 @@ int32_t sinsp::next(OUT sinsp_evt** puevt)
 		{
 			if(res == SCAP_TIMEOUT)
 			{
-				if(m_external_event_processor)
+				if (m_external_event_processor)
 				{
 					m_external_event_processor->process_event(NULL, libsinsp::EVENT_RETURN_TIMEOUT);
 				}
@@ -1279,7 +1292,7 @@ int32_t sinsp::next(OUT sinsp_evt** puevt)
 			}
 			else if(res == SCAP_EOF)
 			{
-				if(m_external_event_processor)
+				if (m_external_event_processor)
 				{
 					m_external_event_processor->process_event(NULL, libsinsp::EVENT_RETURN_EOF);
 				}
@@ -1292,6 +1305,7 @@ int32_t sinsp::next(OUT sinsp_evt** puevt)
 				// and the blocks coming from the next appended file get consumed.
 				restart_capture();
 				return SCAP_TIMEOUT;
+
 			}
 			else if(res == SCAP_FILTERED_EVENT)
 			{
@@ -1302,8 +1316,7 @@ int32_t sinsp::next(OUT sinsp_evt** puevt)
 				// request.
 				if(m_external_event_processor)
 				{
-					m_external_event_processor->process_event(NULL,
-										  libsinsp::EVENT_RETURN_FILTERED);
+					m_external_event_processor->process_event(NULL, libsinsp::EVENT_RETURN_FILTERED);
 					*puevt = NULL;
 					return res;
 				}
@@ -1322,7 +1335,8 @@ int32_t sinsp::next(OUT sinsp_evt** puevt)
 
 	uint64_t ts = evt->get_ts();
 
-	if(m_firstevent_ts == 0 && !libsinsp::events::is_metaevent((ppm_event_code)evt->get_type()))
+	if(m_firstevent_ts == 0 &&
+		!libsinsp::events::is_metaevent((ppm_event_code) evt->get_type()))
 	{
 		m_firstevent_ts = ts;
 	}
@@ -1373,28 +1387,43 @@ int32_t sinsp::next(OUT sinsp_evt** puevt)
 				scap_stats stats;
 				get_capture_stats(&stats);
 
-				g_logger.format(
-					sinsp_logger::SEV_DEBUG,
-					"n_evts:%" PRIu64 " n_drops:%" PRIu64 " n_drops_buffer:%" PRIu64
+				g_logger.format(FALCO_LOG_SEV_DEBUG,
+					"n_evts:%" PRIu64
+					" n_drops:%" PRIu64
+					" n_drops_buffer:%" PRIu64
 					" n_drops_buffer_clone_fork_enter:%" PRIu64
 					" n_drops_buffer_clone_fork_exit:%" PRIu64
-					" n_drops_buffer_execve_enter:%" PRIu64 " n_drops_buffer_execve_exit:%" PRIu64
-					" n_drops_buffer_connect_enter:%" PRIu64 " n_drops_buffer_connect_exit:%" PRIu64
-					" n_drops_buffer_open_enter:%" PRIu64 " n_drops_buffer_open_exit:%" PRIu64
+					" n_drops_buffer_execve_enter:%" PRIu64
+					" n_drops_buffer_execve_exit:%" PRIu64
+					" n_drops_buffer_connect_enter:%" PRIu64
+					" n_drops_buffer_connect_exit:%" PRIu64
+					" n_drops_buffer_open_enter:%" PRIu64
+					" n_drops_buffer_open_exit:%" PRIu64
 					" n_drops_buffer_dir_file_enter:%" PRIu64
 					" n_drops_buffer_dir_file_exit:%" PRIu64
 					" n_drops_buffer_other_interest_enter:%" PRIu64
-					" n_drops_buffer_other_interest_exit:%" PRIu64 " n_drops_scratch_map:%" PRIu64
-					" n_drops_pf:%" PRIu64 " n_drops_bug:%" PRIu64,
-					stats.n_evts, stats.n_drops, stats.n_drops_buffer,
-					stats.n_drops_buffer_clone_fork_enter, stats.n_drops_buffer_clone_fork_exit,
-					stats.n_drops_buffer_execve_enter, stats.n_drops_buffer_execve_exit,
-					stats.n_drops_buffer_connect_enter, stats.n_drops_buffer_connect_exit,
-					stats.n_drops_buffer_open_enter, stats.n_drops_buffer_open_exit,
-					stats.n_drops_buffer_dir_file_enter, stats.n_drops_buffer_dir_file_exit,
+					" n_drops_buffer_other_interest_exit:%" PRIu64
+					" n_drops_scratch_map:%" PRIu64
+					" n_drops_pf:%" PRIu64
+					" n_drops_bug:%" PRIu64,
+					stats.n_evts,
+					stats.n_drops,
+					stats.n_drops_buffer,
+					stats.n_drops_buffer_clone_fork_enter,
+					stats.n_drops_buffer_clone_fork_exit,
+					stats.n_drops_buffer_execve_enter,
+					stats.n_drops_buffer_execve_exit,
+					stats.n_drops_buffer_connect_enter,
+					stats.n_drops_buffer_connect_exit,
+					stats.n_drops_buffer_open_enter,
+					stats.n_drops_buffer_open_exit,
+					stats.n_drops_buffer_dir_file_enter,
+					stats.n_drops_buffer_dir_file_exit,
 					stats.n_drops_buffer_other_interest_enter,
-					stats.n_drops_buffer_other_interest_exit, stats.n_drops_scratch_map,
-					stats.n_drops_pf, stats.n_drops_bug);
+					stats.n_drops_buffer_other_interest_exit,
+					stats.n_drops_scratch_map,
+					stats.n_drops_pf,
+					stats.n_drops_bug);
 			}
 
 			m_next_stats_print_time_ns = ts - (ts % ONE_SECOND_IN_NS) + ONE_SECOND_IN_NS;
@@ -1429,7 +1458,7 @@ int32_t sinsp::next(OUT sinsp_evt** puevt)
 
 	if(nfdr != 0)
 	{
-		/* This is a removal logic we shouldn't scan /proc. If we don't have the thread
+		/* This is a removal logic we shouldn't scan /proc. If we don't have the thread 
 		 * to remove we are fine.
 		 */
 		sinsp_threadinfo* ptinfo = get_thread_ref(m_tid_of_fd_to_remove, false).get();
@@ -1483,7 +1512,7 @@ int32_t sinsp::next(OUT sinsp_evt** puevt)
 	// event for state updates. Sinsp understands this through the
 	// EF_MODIFIES_STATE flag, which however is only relevant in the context of
 	// the internal implementation of libsinsp.
-	for(auto& pp : m_plugin_parsers)
+	for (auto& pp : m_plugin_parsers)
 	{
 		// todo(jason): should we log parsing errors here?
 		pp.process_event(evt, m_event_sources);
@@ -1498,18 +1527,18 @@ int32_t sinsp::next(OUT sinsp_evt** puevt)
 		{
 			switch(m_cycle_writer->consider(evt, m_dumper->written_bytes()))
 			{
-			case cycle_writer::NEWFILE:
-				autodump_next_file();
-				break;
+				case cycle_writer::NEWFILE:
+					autodump_next_file();
+					break;
 
-			case cycle_writer::DOQUIT:
-				stop_capture();
-				return SCAP_EOF;
-				break;
+				case cycle_writer::DOQUIT:
+					stop_capture();
+					return SCAP_EOF;
+					break;
 
-			case cycle_writer::SAMEFILE:
-				// do nothing.
-				break;
+				case cycle_writer::SAMEFILE:
+					// do nothing.
+					break;
 			}
 		}
 
@@ -1532,7 +1561,7 @@ int32_t sinsp::next(OUT sinsp_evt** puevt)
 	//
 	// Run the analysis engine
 	//
-	if(m_external_event_processor)
+	if (m_external_event_processor)
 	{
 		m_external_event_processor->process_event(evt, libsinsp::EVENT_RETURN_NONE);
 	}
@@ -1543,7 +1572,9 @@ int32_t sinsp::next(OUT sinsp_evt** puevt)
 	//
 	// Update the last event time for this thread
 	//
-	if(evt->m_tinfo && evt->get_type() != PPME_SCHEDSWITCH_1_E && evt->get_type() != PPME_SCHEDSWITCH_6_E)
+	if(evt->m_tinfo &&
+		evt->get_type() != PPME_SCHEDSWITCH_1_E &&
+		evt->get_type() != PPME_SCHEDSWITCH_6_E)
 	{
 		evt->m_tinfo->m_prevevent_ts = evt->m_tinfo->m_lastevent_ts;
 		evt->m_tinfo->m_lastevent_ts = m_lastevent_ts;
@@ -1574,20 +1605,22 @@ sinsp_threadinfo* sinsp::find_thread_test(int64_t tid, bool lookup_only)
 	return &*find_thread(tid, lookup_only);
 }
 
-threadinfo_map_t::ptr_t sinsp::get_thread_ref(int64_t tid, bool query_os_if_not_found, bool lookup_only,
-					      bool main_thread)
+threadinfo_map_t::ptr_t sinsp::get_thread_ref(int64_t tid, bool query_os_if_not_found, bool lookup_only, bool main_thread)
 {
 	return m_thread_manager->get_thread_ref(tid, query_os_if_not_found, lookup_only, main_thread);
 }
 
-bool sinsp::add_thread(const sinsp_threadinfo* ptinfo)
+bool sinsp::add_thread(const sinsp_threadinfo *ptinfo)
 {
 	return m_thread_manager->add_thread((sinsp_threadinfo*)ptinfo, false);
 }
 
-void sinsp::remove_thread(int64_t tid) { m_thread_manager->remove_thread(tid); }
+void sinsp::remove_thread(int64_t tid)
+{
+	m_thread_manager->remove_thread(tid);
+}
 
-bool sinsp::suppress_events_comm(const std::string& comm)
+bool sinsp::suppress_events_comm(const std::string &comm)
 {
 	if(m_suppressed_comms.size() >= SCAP_MAX_SUPPRESSED_COMMS)
 	{
@@ -1598,7 +1631,7 @@ bool sinsp::suppress_events_comm(const std::string& comm)
 
 	if(m_h)
 	{
-		if(scap_suppress_events_comm(m_h, comm.c_str()) != SCAP_SUCCESS)
+		if (scap_suppress_events_comm(m_h, comm.c_str()) != SCAP_SUCCESS)
 		{
 			return false;
 		}
@@ -1617,7 +1650,10 @@ bool sinsp::suppress_events_tid(int64_t tid)
 	return false;
 }
 
-bool sinsp::check_suppressed(int64_t tid) { return scap_check_suppressed_tid(m_h, tid); }
+bool sinsp::check_suppressed(int64_t tid)
+{
+	return scap_check_suppressed_tid(m_h, tid);
+}
 
 void sinsp::add_suppressed_comms(scap_open_args* oargs)
 {
@@ -1626,7 +1662,7 @@ void sinsp::add_suppressed_comms(scap_open_args* oargs)
 	// Note--using direct pointers to values in
 	// m_suppressed_comms. This is ok given that a scap_open()
 	// will immediately follow after which the args won't be used.
-	for(auto& comm : m_suppressed_comms)
+	for(auto &comm : m_suppressed_comms)
 	{
 		oargs->suppressed_comms[i++] = comm.c_str();
 	}
@@ -1644,15 +1680,30 @@ void sinsp::set_query_docker_image_info(bool query_image_info)
 	m_container_manager.set_query_docker_image_info(query_image_info);
 }
 
-void sinsp::set_cri_extra_queries(bool extra_queries) { m_container_manager.set_cri_extra_queries(extra_queries); }
+void sinsp::set_cri_extra_queries(bool extra_queries)
+{
+	m_container_manager.set_cri_extra_queries(extra_queries);
+}
 
-void sinsp::set_cri_socket_path(const std::string& path) { m_container_manager.set_cri_socket_path(path); }
+void sinsp::set_cri_socket_path(const std::string& path)
+{
+	m_container_manager.set_cri_socket_path(path);
+}
 
-void sinsp::add_cri_socket_path(const std::string& path) { m_container_manager.add_cri_socket_path(path); }
+void sinsp::add_cri_socket_path(const std::string& path)
+{
+	m_container_manager.add_cri_socket_path(path);
+}
 
-void sinsp::set_cri_timeout(int64_t timeout_ms) { m_container_manager.set_cri_timeout(timeout_ms); }
+void sinsp::set_cri_timeout(int64_t timeout_ms)
+{
+	m_container_manager.set_cri_timeout(timeout_ms);
+}
 
-void sinsp::set_cri_async(bool async) { m_container_manager.set_cri_async(async); }
+void sinsp::set_cri_async(bool async)
+{
+	m_container_manager.set_cri_async(async);
+}
 
 void sinsp::set_container_labels_max_len(uint32_t max_label_len)
 {
@@ -1735,7 +1786,7 @@ std::shared_ptr<sinsp_plugin> sinsp::register_plugin(const std::string& filepath
 {
 	std::string errstr;
 	std::shared_ptr<sinsp_plugin> plugin = sinsp_plugin::create(filepath, m_table_registry, errstr);
-	if(!plugin)
+	if (!plugin)
 	{
 		throw sinsp_exception("cannot load plugin " + filepath + ": " + errstr.c_str());
 	}
@@ -1743,7 +1794,7 @@ std::shared_ptr<sinsp_plugin> sinsp::register_plugin(const std::string& filepath
 	try
 	{
 		m_plugin_manager->add(plugin);
-		if(plugin->caps() & CAP_PARSING)
+		if (plugin->caps() & CAP_PARSING)
 		{
 			m_plugin_parsers.push_back(sinsp_plugin_parser(plugin));
 		}
@@ -1760,7 +1811,7 @@ std::shared_ptr<sinsp_plugin> sinsp::register_plugin(const plugin_api* api)
 {
 	std::string errstr;
 	std::shared_ptr<sinsp_plugin> plugin = sinsp_plugin::create(api, m_table_registry, errstr);
-	if(!plugin)
+	if (!plugin)
 	{
 		throw sinsp_exception("cannot load plugin with custom vtable: " + errstr);
 	}
@@ -1768,15 +1819,14 @@ std::shared_ptr<sinsp_plugin> sinsp::register_plugin(const plugin_api* api)
 	try
 	{
 		m_plugin_manager->add(plugin);
-		if(plugin->caps() & CAP_PARSING)
+		if (plugin->caps() & CAP_PARSING)
 		{
 			m_plugin_parsers.push_back(sinsp_plugin_parser(plugin));
 		}
 	}
 	catch(sinsp_exception const& e)
 	{
-		throw sinsp_exception("cannot register plugin with custom vtable in inspector: " +
-				      std::string(e.what()));
+		throw sinsp_exception("cannot register plugin with custom vtable in inspector: " + std::string(e.what()));
 	}
 
 	return plugin;
@@ -1790,9 +1840,7 @@ void sinsp::set_input_plugin(const std::string& name, const std::string& params)
 		{
 			if(!(it->caps() & CAP_SOURCING))
 			{
-				throw sinsp_exception(
-					"plugin " + name +
-					" has not event sourcing capabilities and cannot be used as input.");
+				throw sinsp_exception("plugin " + name + " has not event sourcing capabilities and cannot be used as input.");
 			}
 			m_input_plugin = it;
 			m_input_plugin_open_params = params;
@@ -1808,32 +1856,6 @@ void sinsp::stop_capture()
 	{
 		throw sinsp_exception(scap_getlasterr(m_h));
 	}
-
-	/* Print scap stats */
-	print_capture_stats(sinsp_logger::SEV_DEBUG);
-
-	/* Print the number of threads and fds in our tables */
-	uint64_t thread_cnt = 0;
-	uint64_t fd_cnt = 0;
-	m_thread_manager->m_threadtable.loop(
-		[&thread_cnt, &fd_cnt](sinsp_threadinfo& tinfo)
-		{
-			thread_cnt++;
-
-			/* Only main threads have an associated fdtable */
-			if(tinfo.is_main_thread())
-			{
-				auto fdtable_ptr = tinfo.get_fd_table();
-				if(fdtable_ptr != nullptr)
-				{
-					fd_cnt += fdtable_ptr->size();
-				}
-			}
-			return true;
-		});
-	g_logger.format(sinsp_logger::SEV_DEBUG,
-			"total threads in the table:%" PRIu64 ", total fds in all threads:%" PRIu64 "\n", thread_cnt,
-			fd_cnt);
 }
 
 void sinsp::start_capture()
@@ -1897,11 +1919,17 @@ void sinsp::set_filter(const std::string& filter)
 	m_internal_flt_ast = compiler.get_filter_ast();
 }
 
-const std::string sinsp::get_filter() { return m_filterstring; }
+const std::string sinsp::get_filter()
+{
+	return m_filterstring;
+}
 
-std::shared_ptr<libsinsp::filter::ast::expr> sinsp::get_filter_ast() { return m_internal_flt_ast; }
+std::shared_ptr<libsinsp::filter::ast::expr> sinsp::get_filter_ast()
+{
+	return m_internal_flt_ast;
+}
 
-bool sinsp::run_filters_on_evt(sinsp_evt* evt)
+bool sinsp::run_filters_on_evt(sinsp_evt *evt)
 {
 	//
 	// First run the global filter, if there is one.
@@ -1914,18 +1942,30 @@ bool sinsp::run_filters_on_evt(sinsp_evt* evt)
 	return false;
 }
 
-const scap_machine_info* sinsp::get_machine_info() { return m_machine_info; }
+const scap_machine_info* sinsp::get_machine_info()
+{
+	return m_machine_info;
+}
 
-const scap_agent_info* sinsp::get_agent_info() { return m_agent_info; }
+const scap_agent_info* sinsp::get_agent_info()
+{
+	return m_agent_info;
+}
 
-scap_stats_v2* sinsp::get_sinsp_stats_v2_buffer() { return m_sinsp_stats_v2; }
+scap_stats_v2* sinsp::get_sinsp_stats_v2_buffer()
+{
+	return m_sinsp_stats_v2;
+}
 
 void sinsp::get_filtercheck_fields_info(OUT std::vector<const filter_check_info*>& list)
 {
 	sinsp_utils::get_filtercheck_fields_info(list);
 }
 
-sinsp_filter_check* sinsp::new_generic_filtercheck() { return new sinsp_filter_check_gen_event(); }
+sinsp_filter_check* sinsp::new_generic_filtercheck()
+{
+	return new sinsp_filter_check_gen_event();
+}
 
 void sinsp::get_capture_stats(scap_stats* stats) const
 {
@@ -1933,36 +1973,11 @@ void sinsp::get_capture_stats(scap_stats* stats) const
 	scap_get_stats(m_h, stats);
 }
 
-void sinsp::print_capture_stats(sinsp_logger::severity sev) const
-{
-	scap_stats stats;
-	get_capture_stats(&stats);
-
-	g_logger.format(sev,
-			"\nn_evts:%" PRIu64 "\nn_drops:%" PRIu64 "\nn_drops_buffer:%" PRIu64
-			"\nn_drops_buffer_clone_fork_enter:%" PRIu64 "\nn_drops_buffer_clone_fork_exit:%" PRIu64
-			"\nn_drops_buffer_execve_enter:%" PRIu64 "\nn_drops_buffer_execve_exit:%" PRIu64
-			"\nn_drops_buffer_connect_enter:%" PRIu64 "\nn_drops_buffer_connect_exit:%" PRIu64
-			"\nn_drops_buffer_open_enter:%" PRIu64 "\nn_drops_buffer_open_exit:%" PRIu64
-			"\nn_drops_buffer_dir_file_enter:%" PRIu64 "\nn_drops_buffer_dir_file_exit:%" PRIu64
-			"\nn_drops_buffer_other_interest_enter:%" PRIu64 "\nn_drops_buffer_other_interest_exit:%" PRIu64
-			"\nn_drops_buffer_close_exit:%" PRIu64 "\nn_drops_buffer_proc_exit:%" PRIu64
-			"\nn_drops_scratch_map:%" PRIu64 "\nn_drops_pf:%" PRIu64 "\nn_drops_bug:%" PRIu64 "\n",
-			stats.n_evts, stats.n_drops, stats.n_drops_buffer, stats.n_drops_buffer_clone_fork_enter,
-			stats.n_drops_buffer_clone_fork_exit, stats.n_drops_buffer_execve_enter,
-			stats.n_drops_buffer_execve_exit, stats.n_drops_buffer_connect_enter,
-			stats.n_drops_buffer_connect_exit, stats.n_drops_buffer_open_enter,
-			stats.n_drops_buffer_open_exit, stats.n_drops_buffer_dir_file_enter,
-			stats.n_drops_buffer_dir_file_exit, stats.n_drops_buffer_other_interest_enter,
-			stats.n_drops_buffer_other_interest_exit, stats.n_drops_buffer_close_exit,
-			stats.n_drops_buffer_proc_exit, stats.n_drops_scratch_map, stats.n_drops_pf, stats.n_drops_bug);
-}
-
 const struct scap_stats_v2* sinsp::get_capture_stats_v2(uint32_t flags, uint32_t* nstats, int32_t* rc) const
 {
 	/* On purpose ignoring failures to not interrupt in case of stats retrieval failure. */
 	const struct scap_stats_v2* stats_v2 = scap_get_stats_v2(m_h, flags, nstats, rc);
-	if(!stats_v2)
+	if (!stats_v2)
 	{
 		*nstats = 0;
 		return NULL;
@@ -2022,46 +2037,87 @@ void sinsp::set_log_callback(sinsp_logger_callback cb)
 	}
 }
 
-void sinsp::set_log_file(std::string filename) { g_logger.add_file_log(filename); }
+void sinsp::set_log_file(std::string filename)
+{
+	g_logger.add_file_log(filename);
+}
 
-void sinsp::set_log_stderr() { g_logger.add_stderr_log(); }
+void sinsp::set_log_stderr()
+{
+	g_logger.add_stderr_log();
+}
 
-void sinsp::set_min_log_severity(falco_log_severity sev) { g_logger.set_severity(sev); }
+void sinsp::set_min_log_severity(falco_log_severity sev)
+{
+	g_logger.set_severity(sev);
+}
 
-sinsp_evttables* sinsp::get_event_info_tables() { return &g_infotables; }
+sinsp_evttables* sinsp::get_event_info_tables()
+{
+	return &g_infotables;
+}
 
-void sinsp::set_buffer_format(sinsp_evt::param_fmt format) { m_buffer_format = format; }
+void sinsp::set_buffer_format(sinsp_evt::param_fmt format)
+{
+	m_buffer_format = format;
+}
 
-sinsp_evt::param_fmt sinsp::get_buffer_format() { return m_buffer_format; }
+sinsp_evt::param_fmt sinsp::get_buffer_format()
+{
+	return m_buffer_format;
+}
 
-void sinsp::set_large_envs(bool enable) { m_large_envs_enabled = enable; }
+void sinsp::set_large_envs(bool enable)
+{
+	m_large_envs_enabled = enable;
+}
 
-void sinsp::set_debug_mode(bool enable_debug) { m_isdebug_enabled = enable_debug; }
+void sinsp::set_debug_mode(bool enable_debug)
+{
+	m_isdebug_enabled = enable_debug;
+}
 
-void sinsp::set_print_container_data(bool print_container_data) { m_print_container_data = print_container_data; }
+void sinsp::set_print_container_data(bool print_container_data)
+{
+	m_print_container_data = print_container_data;
+}
 
-void sinsp::set_fatfile_dump_mode(bool enable_fatfile) { m_isfatfile_enabled = enable_fatfile; }
+void sinsp::set_fatfile_dump_mode(bool enable_fatfile)
+{
+	m_isfatfile_enabled = enable_fatfile;
+}
 
 void sinsp::set_internal_events_mode(bool enable_internal_events)
 {
 	m_isinternal_events_enabled = enable_internal_events;
 }
 
-void sinsp::set_hostname_and_port_resolution_mode(bool enable) { m_hostname_and_port_resolution_enabled = enable; }
+void sinsp::set_hostname_and_port_resolution_mode(bool enable)
+{
+	m_hostname_and_port_resolution_enabled = enable;
+}
 
-void sinsp::set_max_evt_output_len(uint32_t len) { m_max_evt_output_len = len; }
+void sinsp::set_max_evt_output_len(uint32_t len)
+{
+	m_max_evt_output_len = len;
+}
 
 sinsp_protodecoder* sinsp::require_protodecoder(std::string decoder_name)
 {
 	return m_parser->add_protodecoder(decoder_name);
 }
 
-void sinsp::protodecoder_register_reset(sinsp_protodecoder* dec) { m_decoders_reset_list.push_back(dec); }
+void sinsp::protodecoder_register_reset(sinsp_protodecoder* dec)
+{
+	m_decoders_reset_list.push_back(dec);
+}
 
-sinsp_parser* sinsp::get_parser() { return m_parser; }
+sinsp_parser* sinsp::get_parser()
+{
+	return m_parser;
+}
 
-bool sinsp::setup_cycle_writer(std::string base_file_name, int rollover_mb, int duration_seconds, int file_limit,
-			       unsigned long event_limit, bool compress)
+bool sinsp::setup_cycle_writer(std::string base_file_name, int rollover_mb, int duration_seconds, int file_limit, unsigned long event_limit, bool compress)
 {
 	m_compress = compress;
 
@@ -2099,7 +2155,9 @@ double sinsp::get_read_progress_file()
 	return (double)fpos * 100 / m_filesize;
 }
 
-void sinsp::set_metadata_download_params(uint32_t data_max_b, uint32_t data_chunk_wait_us, uint32_t data_watch_freq_sec)
+void sinsp::set_metadata_download_params(uint32_t data_max_b,
+	uint32_t data_chunk_wait_us,
+	uint32_t data_watch_freq_sec)
 {
 	m_metadata_download_params.m_data_max_b = data_max_b;
 	m_metadata_download_params.m_data_chunk_wait_us = data_chunk_wait_us;
@@ -2115,7 +2173,7 @@ void sinsp::get_read_progress_plugin(OUT double* nres, std::string* sres)
 		return;
 	}
 
-	if(!m_input_plugin)
+	if (!m_input_plugin)
 	{
 		*nres = -1;
 		*sres = "No Input Plugin";
@@ -2158,7 +2216,10 @@ double sinsp::get_read_progress_with_str(OUT std::string* progress_str)
 	}
 }
 
-bool sinsp::remove_inactive_threads() { return m_thread_manager->remove_inactive_threads(); }
+bool sinsp::remove_inactive_threads()
+{
+	return m_thread_manager->remove_inactive_threads();
+}
 
 #if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 void sinsp::init_mesos_client(std::string* api_server, bool verbose)
@@ -2179,20 +2240,23 @@ void sinsp::init_mesos_client(std::string* api_server, bool verbose)
 		}
 
 		bool is_live = !m_mesos_api_server.empty();
-		m_mesos_client = new mesos(
-			m_mesos_api_server, m_marathon_api_server,
-			true,			       // mesos leader auto-follow
-			m_marathon_api_server.empty(), // marathon leader auto-follow if no uri
-			mesos::credentials_t(),	       // mesos creds, the only way to provide creds is embedded in URI
-			mesos::credentials_t(),	       // marathon creds
-			mesos::default_timeout_ms, is_live, m_verbose_json);
+		m_mesos_client = new mesos(m_mesos_api_server,
+									m_marathon_api_server,
+									true, // mesos leader auto-follow
+									m_marathon_api_server.empty(), // marathon leader auto-follow if no uri
+									mesos::credentials_t(), // mesos creds, the only way to provide creds is embedded in URI
+									mesos::credentials_t(), // marathon creds
+									mesos::default_timeout_ms,
+									is_live,
+									m_verbose_json);
 	}
 }
 
-void sinsp::init_k8s_ssl(const std::string* ssl_cert)
+void sinsp::init_k8s_ssl(const std::string *ssl_cert)
 {
 #ifdef HAS_CAPTURE
-	if(ssl_cert != nullptr && !ssl_cert->empty() && (!m_k8s_ssl || !m_k8s_bt))
+	if(ssl_cert != nullptr && !ssl_cert->empty()
+	   && (!m_k8s_ssl || ! m_k8s_bt))
 	{
 		std::string cert;
 		std::string key;
@@ -2217,7 +2281,7 @@ void sinsp::init_k8s_ssl(const std::string* ssl_cert)
 			// substr() from head, but it may be empty
 			std::string::size_type head = pos + 1;
 			pos = ssl_cert->find(':', head);
-			if(pos == std::string::npos)
+			if (pos == std::string::npos)
 			{
 				key = ssl_cert->substr(head);
 			}
@@ -2239,10 +2303,11 @@ void sinsp::init_k8s_ssl(const std::string* ssl_cert)
 				key = key.substr(0, pos);
 			}
 		}
-		g_logger.format(FALCO_LOG_SEV_TRACE, "Creating sinsp_ssl with cert %s, key %s, key_pwd %s, ca_cert %s",
+		g_logger.format(FALCO_LOG_SEV_TRACE,
+				"Creating sinsp_ssl with cert %s, key %s, key_pwd %s, ca_cert %s",
 				cert.c_str(), key.c_str(), key_pwd.c_str(), ca_cert.c_str());
-		m_k8s_ssl =
-			std::make_shared<sinsp_ssl>(cert, key, key_pwd, ca_cert, ca_cert.empty() ? false : true, "PEM");
+		m_k8s_ssl = std::make_shared<sinsp_ssl>(cert, key, key_pwd,
+					ca_cert, ca_cert.empty() ? false : true, "PEM");
 	}
 #endif // HAS_CAPTURE
 }
@@ -2252,47 +2317,41 @@ void sinsp::make_k8s_client()
 	bool enable_capture = NULL != m_dumper && m_k8s_api_server && !m_k8s_api_server->empty();
 
 	m_k8s_client = new k8s(
-
+		
 		// uri
 		m_k8s_api_server ? *m_k8s_api_server : std::string()
 
-		// For the k8s client, "is_captured" actually means:
-		// "Please, put k8s events data in a deque so we can consume them later."
-		//
+		// For the k8s client, "is_captured" actually means: 
+        // "Please, put k8s events data in a deque so we can consume them later."
+		// 
 		// is_captured
-		,
-		enable_capture
+		,enable_capture
 
-	// ssl
-	// bt
-	// block
+		// ssl
+		// bt
+		// block
 #ifdef HAS_CAPTURE
-		,
-		m_k8s_ssl, m_k8s_bt,
-		true // blocking
-#endif		     // HAS_CAPTURE
+		,m_k8s_ssl
+		,m_k8s_bt
+		,true // blocking
+#endif // HAS_CAPTURE
 
 		// event_filter
-		,
-		nullptr
+		,nullptr 
 
-	// extensions
+		// extensions
 #ifdef HAS_CAPTURE
-		,
-		m_ext_list_ptr
+		,m_ext_list_ptr
 #else
-		,
-		nullptr
+		,nullptr
 #endif // HAS_CAPTURE
 
 		// events_only
-		,
-		false
+		,false 
 
-	// node_selector
+		// node_selector
 #ifdef HAS_CAPTURE
-		,
-		m_k8s_node_name ? *m_k8s_node_name : std::string()
+		,m_k8s_node_name ? *m_k8s_node_name : std::string()
 #endif // HAS_CAPTURE
 	);
 }
@@ -2324,9 +2383,9 @@ void sinsp::validate_k8s_node_name()
 	if(!m_k8s_node_name || m_k8s_node_name->size() == 0)
 	{
 		g_logger.log(FALCO_LOG_SEV_WARNING, "No k8s node name passed as argument. "
-						    "This may result in performance penalty on large clusters");
+			"This may result in performance penalty on large clusters");
 	}
-	else
+	else 
 	{
 		bool found = false;
 		const auto& state = m_k8s_client->get_state();
@@ -2337,7 +2396,7 @@ void sinsp::validate_k8s_node_name()
 			{
 				found = true;
 				break;
-			}
+			} 
 		}
 
 		if(!found)
@@ -2350,9 +2409,10 @@ void sinsp::validate_k8s_node_name()
 			// to error-level logging, however this is an issue we may want to
 			// further investigate in the future.
 			// see: https://github.com/falcosecurity/falco/issues/2358
-			g_logger.log(FALCO_LOG_SEV_ERROR, "Failing to enrich events with Kubernetes metadata: "
-							  "node name does not correspond to a node in the cluster: " +
-								  *m_k8s_node_name);
+			g_logger.log(
+				FALCO_LOG_SEV_ERROR, "Failing to enrich events with Kubernetes metadata: "
+				"node name does not correspond to a node in the cluster: "
+				+ *m_k8s_node_name);
 		}
 	}
 
@@ -2380,8 +2440,7 @@ void sinsp::collect_k8s()
 			if(m_k8s_client)
 			{
 				if(m_lastevent_ts >
-				   m_k8s_last_watch_time_ns +
-					   (m_metadata_download_params.m_data_watch_freq_sec * ONE_SECOND_IN_NS))
+					m_k8s_last_watch_time_ns + (m_metadata_download_params.m_data_watch_freq_sec * ONE_SECOND_IN_NS))
 				{
 					m_k8s_last_watch_time_ns = m_lastevent_ts;
 					g_logger.log(FALCO_LOG_SEV_DEBUG, "K8s updating state ...");
@@ -2389,9 +2448,7 @@ void sinsp::collect_k8s()
 					m_k8s_client->watch();
 					m_parser->schedule_k8s_events();
 					delta = sinsp_utils::get_current_time_ns() - delta;
-					g_logger.format(FALCO_LOG_SEV_DEBUG,
-							"Updating Kubernetes state took %" PRIu64 " ms",
-							delta / 1000000LL);
+					g_logger.format(FALCO_LOG_SEV_DEBUG, "Updating Kubernetes state took %" PRIu64 " ms", delta / 1000000LL);
 				}
 
 				if(!m_k8s_node_name_validated)
@@ -2417,10 +2474,7 @@ void sinsp::k8s_discover_ext()
 				{
 					m_k8s_collector = std::make_shared<k8s_handler::collector_t>();
 				}
-				if(uri(*m_k8s_api_server).is_secure())
-				{
-					init_k8s_ssl(m_k8s_api_cert);
-				}
+				if(uri(*m_k8s_api_server).is_secure()) { init_k8s_ssl(m_k8s_api_cert); }
 				m_k8s_ext_handler.reset(new k8s_api_handler(m_k8s_collector, *m_k8s_api_server,
 									    "/apis/apps/v1", "[.resources[].name]",
 									    "1.1", m_k8s_ssl, m_k8s_bt, true));
@@ -2436,29 +2490,26 @@ void sinsp::k8s_discover_ext()
 					if(m_k8s_ext_handler->error())
 					{
 						g_logger.log(FALCO_LOG_SEV_WARNING,
-							     "K8s API extensions handler: data error occurred while "
-							     "detecting API extensions.");
+									 "K8s API extensions handler: data error occurred while detecting API extensions.");
 						m_ext_list_ptr.reset();
 					}
 					else
 					{
-						const k8s_api_handler::api_list_t& exts =
-							m_k8s_ext_handler->extensions();
+						const k8s_api_handler::api_list_t& exts = m_k8s_ext_handler->extensions();
 						std::ostringstream ostr;
 						k8s_ext_list_t ext_list;
 						for(const auto& ext : exts)
 						{
-							if(m_k8s_allowed_ext.find(ext) == m_k8s_allowed_ext.end())
+							if (m_k8s_allowed_ext.find(ext) == m_k8s_allowed_ext.end()) 
 							{
 								// skip not allowed extension
 								continue;
-							}
+							} 
 							ext_list.insert(ext);
 							ostr << std::endl << ext;
 						}
 						g_logger.log(FALCO_LOG_SEV_DEBUG,
-							     "K8s API extensions handler extensions found: " +
-								     ostr.str());
+									 "K8s API extensions handler extensions found: " + ostr.str());
 						m_ext_list_ptr.reset(new k8s_ext_list_t(ext_list));
 					}
 					m_k8s_ext_detect_done = true;
@@ -2474,7 +2525,8 @@ void sinsp::k8s_discover_ext()
 	}
 	catch(const std::exception& ex)
 	{
-		g_logger.log(FALCO_LOG_SEV_ERROR, std::string("K8s API extensions handler error: ").append(ex.what()));
+		g_logger.log(FALCO_LOG_SEV_ERROR,
+					 std::string("K8s API extensions handler error: ").append(ex.what()));
 		m_k8s_ext_detect_done = false;
 		m_k8s_collector.reset();
 		m_k8s_ext_handler.reset();
@@ -2498,14 +2550,15 @@ void sinsp::update_k8s_state()
 					{
 						m_k8s_collector = std::make_shared<k8s_handler::collector_t>();
 					}
-					if(uri(*m_k8s_api_server).is_secure() && (!m_k8s_ssl || !m_k8s_bt))
+					if(uri(*m_k8s_api_server).is_secure() && (!m_k8s_ssl || ! m_k8s_bt))
 					{
 						init_k8s_ssl(m_k8s_api_cert);
 					}
-					m_k8s_api_handler.reset(new k8s_api_handler(
-						m_k8s_collector, *m_k8s_api_server, "/api", ".versions", "1.1",
-						m_k8s_ssl, m_k8s_bt, true, m_metadata_download_params.m_data_max_b,
-						m_metadata_download_params.m_data_chunk_wait_us));
+					m_k8s_api_handler.reset(new k8s_api_handler(m_k8s_collector, *m_k8s_api_server,
+										    "/api", ".versions", "1.1",
+										    m_k8s_ssl, m_k8s_bt, true,
+										    m_metadata_download_params.m_data_max_b,
+										    m_metadata_download_params.m_data_chunk_wait_us));
 				}
 				else
 				{
@@ -2516,16 +2569,14 @@ void sinsp::update_k8s_state()
 						if(m_k8s_api_handler->error())
 						{
 							g_logger.log(FALCO_LOG_SEV_ERROR,
-								     "K8s API handler data error occurred while "
-								     "detecting API versions.");
+										 "K8s API handler data error occurred while detecting API versions.");
 						}
 						else
 						{
 							m_k8s_api_detected = m_k8s_api_handler->has("v1");
 							if(m_k8s_api_detected)
 							{
-								g_logger.log(FALCO_LOG_SEV_DEBUG,
-									     "K8s API server v1 detected.");
+								g_logger.log(FALCO_LOG_SEV_DEBUG, "K8s API server v1 detected.");
 							}
 						}
 						m_k8s_collector.reset();
@@ -2565,8 +2616,7 @@ bool sinsp::get_mesos_data()
 		ASSERT(m_mesos_client);
 		ASSERT(m_mesos_client->is_alive());
 
-		time_t now;
-		time(&now);
+		time_t now; time(&now);
 		if(last_mesos_refresh)
 		{
 			g_logger.log(FALCO_LOG_SEV_DEBUG, "Collecting Mesos data ...");
@@ -2594,7 +2644,7 @@ void sinsp::update_mesos_state()
 {
 	ASSERT(m_mesos_client);
 	if(m_lastevent_ts >
-	   m_mesos_last_watch_time_ns + (m_metadata_download_params.m_data_watch_freq_sec * ONE_SECOND_IN_NS))
+		m_mesos_last_watch_time_ns + (m_metadata_download_params.m_data_watch_freq_sec * ONE_SECOND_IN_NS))
 	{
 		m_mesos_last_watch_time_ns = m_lastevent_ts;
 		if(m_mesos_client->is_alive())
@@ -2604,8 +2654,7 @@ void sinsp::update_mesos_state()
 			{
 				m_parser->schedule_mesos_events();
 				delta = sinsp_utils::get_current_time_ns() - delta;
-				g_logger.format(FALCO_LOG_SEV_DEBUG, "Updating Mesos state took %" PRIu64 " ms",
-						delta / 1000000LL);
+				g_logger.format(FALCO_LOG_SEV_DEBUG, "Updating Mesos state took %" PRIu64 " ms", delta / 1000000LL);
 			}
 		}
 		else
@@ -2619,18 +2668,30 @@ void sinsp::update_mesos_state()
 }
 #endif // CYGWING_AGENT
 
-void sinsp::disable_automatic_threadtable_purging() { m_automatic_threadtable_purging = false; }
+void sinsp::disable_automatic_threadtable_purging()
+{
+	m_automatic_threadtable_purging = false;
+}
 
 void sinsp::set_thread_purge_interval_s(uint32_t val)
 {
 	m_inactive_thread_scan_time_ns = (uint64_t)val * ONE_SECOND_IN_NS;
 }
 
-void sinsp::set_thread_timeout_s(uint32_t val) { m_thread_timeout_ns = (uint64_t)val * ONE_SECOND_IN_NS; }
+void sinsp::set_thread_timeout_s(uint32_t val)
+{
+	m_thread_timeout_ns = (uint64_t)val * ONE_SECOND_IN_NS;
+}
 
-void sinsp::set_proc_scan_timeout_ms(uint64_t val) { m_proc_scan_timeout_ms = val; }
+void sinsp::set_proc_scan_timeout_ms(uint64_t val)
+{
+	m_proc_scan_timeout_ms = val;
+}
 
-void sinsp::set_proc_scan_log_interval_ms(uint64_t val) { m_proc_scan_log_interval_ms = val; }
+void sinsp::set_proc_scan_log_interval_ms(uint64_t val)
+{
+	m_proc_scan_log_interval_ms = val;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // Note: this is defined here so we can inline it in sinso::next
@@ -2647,8 +2708,8 @@ bool sinsp_thread_manager::remove_inactive_threads()
 		//
 		if(m_inspector->m_inactive_thread_scan_time_ns > 30 * ONE_SECOND_IN_NS)
 		{
-			m_last_flush_time_ns = (m_inspector->m_lastevent_ts -
-						m_inspector->m_inactive_thread_scan_time_ns + 30 * ONE_SECOND_IN_NS);
+			m_last_flush_time_ns =
+				(m_inspector->m_lastevent_ts - m_inspector->m_inactive_thread_scan_time_ns + 30 * ONE_SECOND_IN_NS);
 		}
 		else
 		{
@@ -2657,7 +2718,8 @@ bool sinsp_thread_manager::remove_inactive_threads()
 		}
 	}
 
-	if(m_inspector->m_lastevent_ts > m_last_flush_time_ns + m_inspector->m_inactive_thread_scan_time_ns)
+	if(m_inspector->m_lastevent_ts >
+		m_last_flush_time_ns + m_inspector->m_inactive_thread_scan_time_ns)
 	{
 		std::unordered_set<int64_t> to_delete;
 
@@ -2671,18 +2733,19 @@ bool sinsp_thread_manager::remove_inactive_threads()
 		 * thread in its group).
 		 * 3. Threads that we are not using and that are no more alive in /proc.
 		 */
-		m_threadtable.loop(
-			[&](sinsp_threadinfo& tinfo)
+		m_threadtable.loop([&] (sinsp_threadinfo& tinfo) {
+			if(tinfo.is_invalid() ||
+				tinfo.is_dead() ||
+				((m_inspector->m_lastevent_ts > tinfo.m_lastaccess_ts + m_inspector->m_thread_timeout_ns) &&
+					!scap_is_thread_alive(m_inspector->m_h, tinfo.m_pid, tinfo.m_tid, tinfo.m_comm.c_str())))
 			{
-				if(tinfo.is_invalid() || ((m_inspector->m_lastevent_ts >
-							   tinfo.m_lastaccess_ts + m_inspector->m_thread_timeout_ns) &&
-							  !scap_is_thread_alive(m_inspector->m_h, tinfo.m_pid,
-										tinfo.m_tid, tinfo.m_comm.c_str())))
-				{
-					to_delete.insert(tinfo.m_tid);
-				}
-				return true;
-			});
+#ifdef GATHER_INTERNAL_STATS
+				m_removed_threads->increment();
+#endif
+				to_delete.insert(tinfo.m_tid);
+			}
+			return true;
+		});
 
 		for(const auto& tid_to_remove : to_delete)
 		{
@@ -2700,7 +2763,8 @@ bool sinsp_thread_manager::remove_inactive_threads()
 	return false;
 }
 
-sinsp_threadinfo* libsinsp::event_processor::build_threadinfo(sinsp* inspector)
+sinsp_threadinfo*
+libsinsp::event_processor::build_threadinfo(sinsp* inspector)
 {
 	return new sinsp_threadinfo(inspector);
 }
@@ -2715,7 +2779,7 @@ void sinsp::handle_plugin_async_event(const sinsp_plugin& p, std::unique_ptr<sin
 	// they are considered only during live captures, because
 	// offline captures will have the async events already encoded
 	// in the event stream.
-	if(!is_capture())
+	if (!is_capture())
 	{
 		// note: async events get assigned the same event source as the
 		// currently-open one. In case no plugin is open, we set it to zero
@@ -2729,61 +2793,63 @@ void sinsp::handle_plugin_async_event(const sinsp_plugin& p, std::unique_ptr<sin
 		// todo(jasondellaluce): here we are assuming that the "syscall" event
 		// source is always at index 0 in the inspector's event source list,
 		// change this code if this assumption ever stops being true.
-
-		// default: syscall source
 		size_t cur_evtsrc_idx = 0;
 		uint32_t cur_plugin_id = 0;
-
-		// If we have a source plugin, we search for its event source and we update the current event source.
-		// Otherwise the current event source remains the syscall one.
-		if(is_plugin())
+		if (is_plugin())
 		{
 			cur_plugin_id = m_input_plugin->id();
-			if(cur_plugin_id != 0)
+			if (cur_plugin_id != 0)
 			{
 				bool found = false;
 				cur_evtsrc_idx = m_plugin_manager->source_idx_by_plugin_id(cur_plugin_id, found);
-				if(!found)
+				if (!found)
 				{
-					throw sinsp_exception("can't find event source for plugin ID: " +
-							      std::to_string(cur_plugin_id));
+					throw sinsp_exception("can't find event source for plugin ID: "
+						+ std::to_string(cur_plugin_id));
 				}
 			}
 		}
 		ASSERT(cur_evtsrc_idx < m_event_sources.size());
 		const auto& cur_evtsrc = m_event_sources[cur_evtsrc_idx];
-		if(!sinsp_plugin::is_source_compatible(p.async_event_sources(), cur_evtsrc))
+		if (!sinsp_plugin::is_source_compatible(p.async_event_sources(), cur_evtsrc))
 		{
-			throw sinsp_exception("async events of plugin '" + p.name() +
-					      "' are not compatible with open event source '" + cur_evtsrc + "'");
+			throw sinsp_exception("async events of plugin '" + p.name()
+				+ "' are not compatible with open event source '" + cur_evtsrc + "'");
 		}
 
 		// if the async event is generated by a non-syscall event source, then
 		// async events must have no thread associated.
-		if(cur_plugin_id != 0 && evt->m_pevt->tid != (uint64_t)-1)
+		if (cur_plugin_id != 0 && evt->m_pevt->tid != (uint64_t) -1)
 		{
-			throw sinsp_exception("async events of plugin '" + p.name() +
-					      "' can have no thread associated with open event source '" + cur_evtsrc +
-					      "'");
+			throw sinsp_exception("async events of plugin '" + p.name()
+				+ "' can have no thread associated with open event source '" + cur_evtsrc + "'");
 		}
 
 		// write plugin ID and timestamp in the event and kick it in the queue
-		auto plid = (uint32_t*)((uint8_t*)evt->m_pevt + sizeof(scap_evt) + 4 + 4 + 4);
+		auto plid = (uint32_t*)((uint8_t*) evt->m_pevt + sizeof(scap_evt) + 4+4+4);
 		*plid = cur_plugin_id;
 		evt->inspector(this);
-		evt->m_pevt->ts = (uint64_t)-1;
-#ifndef __EMSCRIPTEN__
+		evt->m_pevt->ts = (uint64_t) -1;	
+		m_pending_state_evts.push(std::move(evt));
 	}
 }
 
-bool sinsp::get_track_connection_status() { return m_parser->get_track_connection_status(); }
+bool sinsp::get_track_connection_status()
+{
+	return m_parser->get_track_connection_status();
+}
 
-void sinsp::set_track_connection_status(bool enabled) { m_parser->set_track_connection_status(enabled); }
+void sinsp::set_track_connection_status(bool enabled)
+{
+	m_parser->set_track_connection_status(enabled);
+}
 
 uint64_t sinsp::get_new_ts()
 {
 	// m_lastevent_ts = 0 at startup when containers are
 	// being created as a part of the initial process
 	// scan.
-	return (m_lastevent_ts == 0) ? sinsp_utils::get_current_time_ns() : m_lastevent_ts;
+	return (m_lastevent_ts == 0)
+			? sinsp_utils::get_current_time_ns()
+			: m_lastevent_ts;
 }

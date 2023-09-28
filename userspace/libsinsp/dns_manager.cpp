@@ -24,7 +24,7 @@ limitations under the License.
 	{                                                                   \
 		if (s >= g_logger.get_severity())                               \
 		{                                                               \
-			g_logger.format(sinsp_logger::SEV_DEBUG, fmt, __VA_ARGS__); \
+			g_logger.format(FALCO_LOG_SEV_DEBUG, fmt, __VA_ARGS__); \
 		}                                                               \
 	} while (0)
 
@@ -203,7 +203,7 @@ public:
 			it->second = ts;
 		}
 
-		G_LOG_FORMAT(sinsp_logger::SEV_DEBUG,
+		G_LOG_FORMAT(FALCO_LOG_SEV_DEBUG,
 		             "dns_info: lookup address: %s in: [%s]; found=%s",
 		             ip2str(AF, addr).c_str(),
 		             to_string().c_str(),
@@ -252,7 +252,7 @@ public:
 
 		if (n_erased > 0)
 		{
-			G_LOG_FORMAT(sinsp_logger::SEV_DEBUG,
+			G_LOG_FORMAT(FALCO_LOG_SEV_DEBUG,
 			             "dns_info gc: removed: %d remaining: %d",
 			             n_erased,
 			             (int32_t)m_addrs.size());
@@ -412,63 +412,6 @@ private:
 		if (result == nullptr)
 		{
 			G_LOG_FORMAT(FALCO_LOG_SEV_DEBUG,
-			             "dns_info: empty resolve result for name='%s'",
-			             name.c_str());
-			m_v4_addrs->clear();
-			m_v6_addrs->clear();
-			return false;
-		}
-	}
-
-	bool is_expired(uint64_t erase_timeout, uint64_t ts) const
-	{
-		return (ts > m_last_used_ts) && (ts - m_last_used_ts) > erase_timeout;
-	}
-
-	bool has_address(int af, void* addr, uint64_t ts) const
-	{
-		auto ret =
-		    (af == AF_INET) ? m_v4_addrs->has_address(addr, ts) : m_v6_addrs->has_address(addr, ts);
-
-		if (ret)
-		{
-			m_last_used_ts = ts;
-		}
-		return ret;
-	}
-
-	void copy_addrs( const addr_consumer_t<AF_INET>& consumer ) const
-	{
-		m_v4_addrs->copy(consumer);
-	}
-
-	void copy_addrs( const addr_consumer_t<AF_INET6>& consumer ) const
-	{
-		m_v6_addrs->copy(consumer);
-	}
-
-private:
-	bool resolve(const std::string& name, uint64_t ts, int n_iter)
-	{
-		addrinfo hints{}, *result, *rp;
-		memset(&hints, 0, sizeof(struct addrinfo));
-
-		// Allow IPv4 or IPv6, all socket types, all protocols
-		hints.ai_family = AF_UNSPEC;
-		int s = getaddrinfo(name.c_str(), nullptr, &hints, &result);
-
-		if (s)
-		{
-			G_LOG_FORMAT(sinsp_logger::SEV_WARNING,
-			             "dns_info: unable to resolve name='%s', error=%d",
-			             name.c_str(),
-			             s);
-			return false;
-		}
-
-		if (result == nullptr)
-		{
-			G_LOG_FORMAT(sinsp_logger::SEV_DEBUG,
 			             "dns_info: empty resolve result for name='%s'",
 			             name.c_str());
 			m_v4_addrs->clear();
@@ -684,7 +627,7 @@ void sinsp_dns_manager::refresh(std::future<void> f_exit)
 			manager.m_dns_cache->swap();
 		}
 
-		G_LOG_FORMAT(sinsp_logger::SEV_DEBUG, "%s", "sinsp_dns_manager: refreshed");
+		G_LOG_FORMAT(FALCO_LOG_SEV_DEBUG, "%s", "sinsp_dns_manager: refreshed");
 
 		if (f_exit.wait_for(std::chrono::nanoseconds(base_refresh_timeout / 10)) ==
 		    std::future_status::ready)
@@ -734,7 +677,7 @@ std::string sinsp_dns_manager::name_of(int af, void* addr, uint64_t ts)
 
 	auto ret = m_dns_cache->get_work()->name_of(af, addr, ts);
 
-	G_LOG_FORMAT(sinsp_logger::SEV_DEBUG,
+	G_LOG_FORMAT(FALCO_LOG_SEV_DEBUG,
 	             "dns_info name_of %s:'%s'",
 	             ip2str(af, addr).c_str(),
 	             ret.c_str());
@@ -756,7 +699,7 @@ void sinsp_dns_manager::cleanup()
 		m_resolver = nullptr;
 		m_exit_signal = std::promise<void>();
 
-		G_LOG_FORMAT(sinsp_logger::SEV_DEBUG, "%s", "sinsp_dns_manager::cleanup");
+		G_LOG_FORMAT(FALCO_LOG_SEV_DEBUG, "%s", "sinsp_dns_manager::cleanup");
 	}
 }
 
@@ -769,7 +712,7 @@ size_t sinsp_dns_manager::size()
 // client call to clear cache
 void sinsp_dns_manager::clear_cache()
 {
-	G_LOG_FORMAT(sinsp_logger::SEV_DEBUG, "%s", "sinsp_dns_manager::clear_cache");
+	G_LOG_FORMAT(FALCO_LOG_SEV_DEBUG, "%s", "sinsp_dns_manager::clear_cache");
 	m_dns_cache->clear();
 }
 
